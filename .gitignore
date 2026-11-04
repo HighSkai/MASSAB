@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Tests stay local. testdata is cut from other people's videos.
+sim.py
+test_*.py
+testdata/
+*.mp4
