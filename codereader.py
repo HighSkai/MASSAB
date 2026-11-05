@@ -10,21 +10,20 @@ Usage:
     python codereader.py                      # watch the primary monitor live
     python codereader.py --region 0,120,1280,720   # only a windowed video player
     python codereader.py --video clip.mp4     # test on a recording
+    python codereader.py --mode riddle        # solve riddles with the local AI
+    python codereader.py --mode auto          # codes and riddles, whichever comes
 
 Codes are printed, copied to the clipboard, and pasted into the game if its
 window is active. Click the Codes box first so the paste lands there.
 """
-import argparse
 import ctypes
 import itertools
 import re
-import sys
 import time
 
 import cv2
 import numpy as np
 from rapidfuzz import fuzz
-from rapidocr_onnxruntime import RapidOCR
 
 # Everything is measured on frames scaled to this height.
 WORK_H = 720
@@ -42,6 +41,14 @@ def to_work_scale(frame):
     return cv2.resize(frame, None, fx=WORK_H / h, fy=WORK_H / h, interpolation=cv2.INTER_AREA)
 
 
+def dim_gain(hsv):
+    """Purchase prompts dim the whole screen, overlay included. The overlay's
+    white text is normally the brightest thing here, so this is the brightness
+    gain that undoes the dimming (1.0 if the screen isn't dimmed)."""
+    brightest = np.percentile(hsv[..., 2], 99.5)
+    return min(4.0, 250 / max(brightest, 1)) if brightest < 200 else 1.0
+
+
 def find_lines(frame):
     """Find overlay lines by their icon. Returns [(y_center, text_crop, letter_boxes, n_words)] top to bottom.
 
@@ -52,11 +59,9 @@ def find_lines(frame):
     fh, fw = frame.shape[:2]
     rx0, ry0, rx1, ry1 = int(ROI[0] * fw), int(ROI[1] * fh), int(ROI[2] * fw), int(ROI[3] * fh)
     hsv = cv2.cvtColor(frame[ry0:ry1, rx0:rx1], cv2.COLOR_BGR2HSV)
-    # Purchase prompts dim the whole screen, overlay included. The overlay's
-    # white text is normally the brightest thing here, so undo the dimming.
-    brightest = np.percentile(hsv[..., 2], 99.5)
-    if brightest < 200:
-        frame = cv2.convertScaleAbs(frame, alpha=min(4.0, 250 / max(brightest, 1)))
+    gain = dim_gain(hsv)
+    if gain != 1.0:
+        frame = cv2.convertScaleAbs(frame, alpha=gain)
         hsv = cv2.cvtColor(frame[ry0:ry1, rx0:rx1], cv2.COLOR_BGR2HSV)
     h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
     red = ((h <= 10) | (h >= 170)) & (s > 110) & (v > 90)
@@ -565,7 +570,7 @@ def frames_from_video(path, fps):
 
 def frames_from_screen(fps, monitor=1, region=None):
     import mss
-    with mss.mss() as sct:
+    with mss.MSS() as sct:
         if region:
             x, y, w, h = region
             box = {"left": x, "top": y, "width": w, "height": h}
@@ -618,83 +623,6 @@ def paste_into(title):
     return True
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--video", help="read from a video file instead of the screen")
-    ap.add_argument("--fps", type=float, default=4, help="frames to check per second (default 4)")
-    ap.add_argument("--monitor", type=int, default=1, help="monitor to capture, 1 = primary")
-    ap.add_argument("--region", help="capture only x,y,w,h (e.g. a windowed video player)")
-    ap.add_argument("--words", type=int, default=3,
-                    help="copy as soon as this many words are in, and again for each extra word "
-                         "(default 3, 0 = wait for the code to finish)")
-    ap.add_argument("--end-gap", type=float, default=6.0,
-                    help="seconds with no new word before a code counts as finished (default 6)")
-    ap.add_argument("--copy-partial", action="store_true",
-                    help="update the clipboard with every new word, not just the finished code")
-    ap.add_argument("--no-copy", action="store_true", help="never touch the clipboard (also stops pasting)")
-    ap.add_argument("--no-paste", action="store_true", help="copy codes but don't paste them")
-    ap.add_argument("--paste-window", default="Roblox",
-                    help='only paste when the active window has exactly this title (default "Roblox")')
-    ap.add_argument("--verbose", action="store_true", help="print every frame's OCR reads")
-    args = ap.parse_args()
-    # Raw OCR reads can contain characters the Windows console can't print.
-    sys.stdout.reconfigure(errors="replace")
-
-    import pyperclip
-
-    state = {"copied": "", "early": False}
-
-    def copy(code):
-        """Copy and paste the code. Returns a note on what happened."""
-        state["copied"] = code
-        if args.no_copy:
-            return ""
-        pyperclip.copy(code)
-        if args.no_paste:
-            return "  (copied)"
-        if paste_into(args.paste_window):
-            return "  (copied and pasted)"
-        return f"  (copied, not pasted: {args.paste_window} isn't the active window)"
-
-    def on_partial(code):
-        print(f"[{now:6.1f}s] building: {code}")
-        if args.copy_partial:
-            copy(code)
-
-    def on_ready(code):
-        note = "updated: another word came in" if state["early"] else \
-            f"{args.words} words in, will update if more come"
-        state["early"] = True
-        print(f"[{now:6.1f}s] CODE: {code}{copy(code)}  [{note}]")
-
-    def on_code(code):
-        if state["early"] and code == state["copied"]:
-            print(f"[{now:6.1f}s] done: {code}")
-        else:
-            print(f"[{now:6.1f}s] CODE: {code}{copy(code)}")
-        state["early"] = False
-
-    ocr = RapidOCR()
-    reader = CodeReader(end_gap=args.end_gap, expect_words=args.words,
-                        on_partial=on_partial, on_ready=on_ready, on_code=on_code)
-    if args.video:
-        frames = frames_from_video(args.video, args.fps)
-    else:
-        region = tuple(int(v) for v in args.region.split(",")) if args.region else None
-        frames = frames_from_screen(args.fps, args.monitor, region)
-        print("Watching the screen. Ctrl+C to stop.")
-
-    now = 0.0
-    try:
-        for now, frame in frames:
-            reads = read_frame(ocr, frame)
-            if args.verbose:
-                print(f"  {now:6.1f}s  {reads}")
-            reader.feed(now, reads)
-    except KeyboardInterrupt:
-        pass
-    reader.finish()
-
-
 if __name__ == "__main__":
-    main()
+    import engine
+    engine.main()

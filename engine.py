@@ -1,0 +1,297 @@
+"""The capture loop behind both the command line and the GUI.
+
+Frames go to the code reader, the riddle tracker or both, depending on the
+mode, and whatever comes out is copied and pasted here. Everything that happens
+is reported through one on_event(kind, now=seconds, ...) callback:
+
+    building    code            a code is being collected
+    code        code note ready a code was copied (ready: more words may come)
+    done        code            the last code copied has ended
+    riddle      text            a riddle was read, the model is on it
+    answer      solved note total paste unchanged
+                                the model answered; total is seconds since the
+                                text first appeared on screen, paste included
+    no_answer   solved          the model gave nothing usable
+    ai          state           "loading", "ready" or "off"
+    mode        mode            the mode changed
+    error       message
+    frame       reads           every frame's OCR reads (verbose only)
+"""
+import argparse
+import sys
+import threading
+import time
+from dataclasses import dataclass
+
+import pyperclip
+
+import codereader
+from codereader import CodeReader, frames_from_screen, frames_from_video, paste_into, read_frame
+from riddle import FACTS_PATH, Facts, LlamaServer, RiddleTracker, Solver, load_system_prompt, read_rows
+from setup_ai import DEFAULT_MODEL, MODELS
+
+MODES = ("code", "riddle", "auto")
+# Codes last seconds, so 4 frames a second is plenty. Riddles are on the clock.
+# The code reader is tuned for its rate and drops codes at 12, so when frames
+# come in faster for riddles it still only gets every third one.
+CODE_FPS, RIDDLE_FPS = 4, 12
+# The first request is the slow one. A real riddle pays that with a full prompt.
+WARM_UP_RIDDLE = "month and year the first fuse machine in sab released"
+
+
+@dataclass
+class Options:
+    mode: str = "code"
+    words: int = 3
+    end_gap: float = 6.0
+    copy_partial: bool = False
+    no_copy: bool = False
+    no_paste: bool = False
+    paste_window: str = "Roblox"
+    verbose: bool = False
+    model: str = DEFAULT_MODEL
+    system_prompt: str = None   # None = prompts/riddle_system.txt
+    facts_path: str = FACTS_PATH
+    code_step: int = 1          # give the code reader every Nth frame
+
+
+class Engine:
+    def __init__(self, options, on_event):
+        self.options = options
+        self.on_event = on_event
+        self.mode = options.mode
+        self.next_mode = options.mode
+        self.now = 0.0
+        self.frames_seen = 0
+        self.ocr = None
+        self.server = None
+        self.solver = None
+        self.paste_lock = threading.Lock()
+        self.stopping = threading.Event()
+        self.reset()
+
+    def emit(self, kind, **fields):
+        self.on_event(kind, now=self.now, **fields)
+
+    def reset(self):
+        """Start the readers over, so half-read lines don't carry into a new mode."""
+        self.copied = ""
+        self.early = False
+        self.reader = CodeReader(end_gap=self.options.end_gap, expect_words=self.options.words,
+                                 on_partial=self.on_partial, on_ready=self.on_ready, on_code=self.on_code)
+        self.tracker = RiddleTracker(self.on_riddle)
+
+    def set_mode(self, mode):
+        """Switch modes; safe from any thread, takes effect on the next frame."""
+        self.next_mode = mode
+
+    def stop(self):
+        self.stopping.set()
+
+    # --- the AI ---------------------------------------------------------------
+
+    def start_ai(self):
+        """Load the model and warm it up, so the first riddle isn't slow. Blocks
+        until it's ready. Reports problems as an error event."""
+        if self.solver:
+            return True
+        self.emit("ai", state="loading")
+        try:
+            prompt = self.options.system_prompt
+            self.server = LlamaServer(self.options.model)
+            self.server.start()
+            self.solver = Solver(self.on_answer, self.on_ai_error, load_system_prompt() if prompt is None else prompt,
+                                 Facts(self.options.facts_path))
+            self.solver.solve(WARM_UP_RIDDLE)
+        except (OSError, RuntimeError, ValueError) as e:
+            self.stop_ai()
+            self.emit("error", message=str(e))
+            return False
+        self.emit("ai", state="ready")
+        return True
+
+    def stop_ai(self):
+        if not self.solver and not self.server:
+            return
+        if self.solver:
+            self.solver.stop()
+            self.solver = None
+        if self.server:
+            self.server.stop()
+            self.server = None
+        self.emit("ai", state="off")
+
+    def on_ai_error(self, message):
+        self.emit("error", message=message)
+
+    def set_system_prompt(self, prompt):
+        """Use this prompt from the next riddle on; safe from any thread."""
+        self.options.system_prompt = prompt
+        if self.solver:
+            self.solver.system_prompt = prompt
+
+    # --- copy and paste -------------------------------------------------------
+
+    def deliver(self, code):
+        """Copy and paste a code. Returns a note on what happened."""
+        with self.paste_lock:
+            self.copied = code
+            if self.options.no_copy:
+                return ""
+            pyperclip.copy(code)
+            if self.options.no_paste:
+                return "  (copied)"
+            if paste_into(self.options.paste_window):
+                return "  (copied and pasted)"
+            return f"  (copied, not pasted: {self.options.paste_window} isn't the active window)"
+
+    # --- what the readers report ----------------------------------------------
+
+    def on_partial(self, code):
+        self.emit("building", code=code)
+        if self.options.copy_partial:
+            self.deliver(code)
+
+    def on_ready(self, code):
+        note = self.deliver(code)
+        self.emit("code", code=code, note=note, ready="more" if self.early else "first")
+        self.early = True
+
+    def on_code(self, code):
+        if self.early and code == self.copied:
+            self.emit("done", code=code)
+        else:
+            self.emit("code", code=code, note=self.deliver(code), ready=None)
+        self.early = False
+
+    def on_riddle(self, text, stamp):
+        self.emit("riddle", text=text)
+        if self.solver:
+            self.solver.submit(text, stamp)
+        else:
+            self.emit("error", message="A riddle came in, but the AI isn't loaded.")
+
+    def on_answer(self, solved, stamp):
+        """Runs on the solver's thread."""
+        if not solved.answer:
+            self.emit("no_answer", solved=solved)
+            return
+        # Re-solving a fuller read usually lands on the same answer.
+        unchanged = solved.answer == self.copied
+        start = time.perf_counter()
+        note = "" if unchanged else self.deliver(solved.answer)
+        done = time.perf_counter()
+        self.emit("answer", solved=solved, note=note, total=done - stamp, paste=done - start, unchanged=unchanged)
+
+    # --- the loop -------------------------------------------------------------
+
+    def run(self, frames):
+        """Read frames until they run out or stop() is called."""
+        if self.ocr is None:
+            from rapidocr_onnxruntime import RapidOCR
+            self.ocr = RapidOCR()
+        for self.now, frame in frames:
+            stamp = time.perf_counter()
+            if self.stopping.is_set():
+                break
+            if self.next_mode != self.mode:
+                self.mode = self.next_mode
+                self.reset()
+                self.emit("mode", mode=self.mode)
+            self.process(frame, stamp)
+        self.reader.finish()
+
+    def process(self, frame, stamp):
+        self.frames_seen += 1
+        if self.mode != "riddle" and self.frames_seen % self.options.code_step == 0:
+            reads = read_frame(self.ocr, frame)
+            if self.options.verbose:
+                self.emit("frame", reads=reads)
+            self.reader.feed(self.now, reads)
+        # While a code is coming in, its lines aren't a riddle.
+        if self.mode == "riddle" or (self.mode == "auto" and self.reader.trigger is None):
+            messages = read_rows(self.ocr, frame)
+            if self.options.verbose:
+                self.emit("frame", reads=messages)
+            self.tracker.feed(self.now, messages, stamp)
+
+
+def print_event(kind, now, **e):
+    """Show events on the command line."""
+    stamp = f"[{now:6.1f}s]"
+    if kind == "building":
+        print(f"{stamp} building: {e['code']}")
+    elif kind == "code":
+        note = {"first": "  [{} words in, will update if more come]", "more": "  [updated: another word came in]"}
+        print(f"{stamp} CODE: {e['code']}{e['note']}" + note.get(e["ready"], "").format(e.get("words")))
+    elif kind == "done":
+        print(f"{stamp} done: {e['code']}")
+    elif kind == "riddle":
+        print(f"{stamp} riddle: {e['text']}")
+    elif kind == "answer":
+        solved = e["solved"]
+        guess = "  [GUESS: no fact matched]" if solved.guess else ""
+        same = "  (same answer)" if e["unchanged"] else e["note"]
+        print(f"{stamp} ANSWER: {solved.answer}{same}  [{e['total']:.2f}s total, model {solved.seconds:.2f}s]{guess}")
+    elif kind == "no_answer":
+        print(f"{stamp} no answer from the model: {e['solved'].reply!r}")
+    elif kind == "ai":
+        print(f"{stamp} AI: {e['state']}")
+    elif kind == "error":
+        print(f"{stamp} error: {e['message']}")
+    elif kind == "frame":
+        print(f"  {now:6.1f}s  {e['reads']}")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=codereader.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--mode", choices=MODES, default="code",
+                    help="code, riddle (local AI) or auto (both, whichever comes) (default code)")
+    ap.add_argument("--video", help="read from a video file instead of the screen")
+    ap.add_argument("--fps", type=float, help=f"frames to check per second (default {CODE_FPS}, "
+                                              f"or {RIDDLE_FPS} in riddle and auto modes)")
+    ap.add_argument("--monitor", type=int, default=1, help="monitor to capture, 1 = primary")
+    ap.add_argument("--region", help="capture only x,y,w,h (e.g. a windowed video player)")
+    ap.add_argument("--words", type=int, default=3,
+                    help="copy as soon as this many words are in, and again for each extra word "
+                         "(default 3, 0 = wait for the code to finish)")
+    ap.add_argument("--end-gap", type=float, default=6.0,
+                    help="seconds with no new word before a code counts as finished (default 6)")
+    ap.add_argument("--copy-partial", action="store_true",
+                    help="update the clipboard with every new word, not just the finished code")
+    ap.add_argument("--no-copy", action="store_true", help="never touch the clipboard (also stops pasting)")
+    ap.add_argument("--no-paste", action="store_true", help="copy codes but don't paste them")
+    ap.add_argument("--paste-window", default="Roblox",
+                    help='only paste when the active window has exactly this title (default "Roblox")')
+    ap.add_argument("--model", choices=MODELS, default=DEFAULT_MODEL, help="which downloaded model riddles use")
+    ap.add_argument("--verbose", action="store_true", help="print every frame's OCR reads")
+    args = ap.parse_args()
+    # Raw OCR reads can contain characters the Windows console can't print.
+    sys.stdout.reconfigure(errors="replace")
+
+    fps = args.fps or (CODE_FPS if args.mode == "code" else RIDDLE_FPS)
+    options = Options(mode=args.mode, words=args.words, end_gap=args.end_gap, copy_partial=args.copy_partial,
+                      no_copy=args.no_copy, no_paste=args.no_paste, paste_window=args.paste_window,
+                      verbose=args.verbose, model=args.model,
+                      code_step=max(1, round(fps / CODE_FPS)) if args.mode == "auto" else 1)
+    engine = Engine(options, lambda kind, now, **e: print_event(kind, now, words=args.words, **e))
+    if args.mode != "code" and not engine.start_ai():
+        return 1
+
+    if args.video:
+        frames = frames_from_video(args.video, fps)
+    else:
+        region = tuple(int(v) for v in args.region.split(",")) if args.region else None
+        frames = frames_from_screen(fps, args.monitor, region)
+        print("Watching the screen. Ctrl+C to stop.")
+    try:
+        engine.run(frames)
+    except KeyboardInterrupt:
+        engine.reader.finish()
+    finally:
+        engine.stop_ai()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

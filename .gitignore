@@ -7,3 +7,13 @@ sim.py
 test_*.py
 testdata/
 *.mp4
+
+# Downloaded by setup_ai.py, too big for git.
+bin/
+models/
+
+# Per-user settings and build output.
+settings.json
+build/
+dist/
+check.txt
