@@ -26,7 +26,7 @@ import setup_ai
 from codereader import frames_from_screen
 from engine import CODE_FPS, MODES, RIDDLE_FPS, Engine, Options
 from riddle import gpu_memory, load_system_prompt
-from setup_ai import APP_DIR, DEFAULT_MODEL, LLAMA_SERVER, MODELS, model_path
+from setup_ai import APP_DIR, DEFAULT_MODEL, MODELS, ai_installed
 
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 DEFAULTS = {
@@ -98,10 +98,6 @@ def parse_region(text):
     if len(region) != 4 or region[2] <= 0 or region[3] <= 0:
         raise ValueError(text)
     return region
-
-
-def ai_installed(model):
-    return os.path.exists(LLAMA_SERVER) and os.path.exists(model_path(model))
 
 
 def was_pasted(note):

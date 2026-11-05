@@ -25,7 +25,7 @@ import cv2
 import numpy as np
 from rapidfuzz import fuzz
 
-from codereader import WORK_H, Read, dim_gain, is_hint, normalize, similarity, to_work_scale, white_mask
+from codereader import WORK_H, Read, dim_gain, has_lower, is_hint, normalize, similarity, to_work_scale, white_mask
 from setup_ai import APP_DIR, DEFAULT_MODEL, LLAMA_SERVER, model_path
 
 # Where overlay rows can be, as fractions of the frame (x0, y0, x1, y1). It stops
@@ -143,24 +143,98 @@ def read_rows(ocr, frame):
 
 # --- tracking messages across frames -----------------------------------------
 
-RIDDLE_MIN_WORDS, RIDDLE_MIN_LETTERS = 3, 12
-# Intros and hints are short ("code is...", "it contains no numbers"). A longer
-# line that happens to use their words is a riddle ("which update number added
-# the divine fuse", "the code is the month the first fuse machine released").
+RIDDLE_MIN_WORDS, RIDDLE_MIN_LETTERS = 3, 6
+# A riddle is one long message, or arrives a few words at a time like a code. A
+# message this long is the whole riddle: anything after it is chatter, and
+# letting it join could replace a right answer with a wrong one.
+WHOLE_RIDDLE_WORDS = 5
+RIDDLE_MAX_WORDS = 20
+SENTENCE_MIN_LETTERS = 20
+SAME_PLACE = 20         # pixels at WORK_H a long message can drift between frames
+# Hints and code intros are short ("it contains no numbers"). A longer line that
+# uses their words can be a riddle ("which update number added the divine fuse").
 SHORT_LINE_WORDS = 5
-# An intro or hint stays on screen for seconds, and one bad read shouldn't turn
-# it into a riddle. Remember them this long, if they're long enough to recognize.
-NOT_RIDDLE_MEMORY, NOT_RIDDLE_MIN_LETTERS = 8.0, 8
 SAME_TEXT = 80          # similarity of two reads of one message
+RIDDLE_WAIT = 8.0       # a riddle can start this long after its intro was last seen
+INTRO_GONE = 3.0        # an intro back after this long is a new one, not the same line
+INTRO_MIN_LETTERS = 8   # shorter intros are too easy to find inside other lines
 JOIN_GAP = 2.0          # a message this soon after the last one continues the riddle
 LONGER_BY = 3           # letters a better read must add to count as an update
+# The word that makes a line a riddle intro: "here is the riddle...", "riddle
+# time", "next question", "trivia!". OCR swaps the thin letters of "riddle"
+# (r1ddle, riddie), but the R has to be there or "middle" would count.
+# "question" alone is too common in chat, so it needs an intro's wording.
+RIDDLE_WORD = re.compile(r"r[il1][do0]{2}[li1][e3]s?|trivia|quiz|puzzle|brain\s*teaser"
+                         r"|(?:the|next|new|this|your)\s*question(?!s)|question\s*(?:is\b|:)", re.I)
+# What can sit between that word and a riddle on the same line ("riddle is: ...").
+INTRO_JOINER = re.compile(r"^[\W_]*(?:(?:is|are|for|of|time|today)\b[\W_]*)*", re.I)
+# Lines between an intro and its riddle: a countdown, or hurrying the chat along.
+FILLER = re.compile(r"\d|(?:GET)?READY|GOODLUCK|HURRY(?:UP)?|(?:GO)+|OK|OKAY|LETSGO")
+# Sammy often says "code" and means a riddle: "the code is the rarity of dragon
+# cannelloni and 67". Or he names the prize: "this is for 100 dragons". Either
+# may lead to a riddle or to a plain code, so only a sentence after one counts.
+SOFT_INTRO = re.compile(r"codes?|this\s*(?:one\s*)?(?:is\s*|'?s\s*)?for\b|\bfor\s*\d+\s*\w+|\bprize|\breward", re.I)
+QUESTION_START = re.compile(r"\s*(?:what|which|who|when|where|how|the name|name)\b", re.I)
+
+
+def over_already(text, match):
+    """Talk about one that's finished: "that was a bad riddle", "the code was X"."""
+    return "was" in text[:match.start()].lower() or text[match.end():].lstrip(" .:-").lower().startswith("was")
+
+
+def after_intro(text, match):
+    return INTRO_JOINER.sub("", text[match.end():], count=1).strip()
+
+
+def riddle_intro(text):
+    """What comes after the riddle word in an intro line, or None if this isn't
+    one. A plain intro gives "", and a riddle on the same line gives that riddle."""
+    match = RIDDLE_WORD.search(text)
+    if not match or over_already(text, match):
+        return None
+    rest = after_intro(text, match)
+    words = len(rest.split())
+    if words < RIDDLE_MIN_WORDS or not_riddle_text(rest, words):
+        return ""       # "riddle coming up", "riddle for the code is"
+    return rest
+
+
+def soft_intro(text):
+    """Like riddle_intro, for lines that only might lead to a riddle."""
+    match = SOFT_INTRO.search(text)
+    if not match or over_already(text, match):
+        return None
+    rest = after_intro(text, match)
+    return rest if looks_like_riddle(rest, len(rest.split())) else ""
+
+
+def looks_like_riddle(text, n_words):
+    """A sentence or a question, not the words of a code ("SAB IS AMAZING")."""
+    if not_riddle_text(text, n_words):
+        return False
+    # Stray letters inflate the word count of short lines ("W a diamond one").
+    if n_words >= WHOLE_RIDDLE_WORDS and len(normalize(text)) >= SENTENCE_MIN_LETTERS and has_lower(text):
+        return True
+    asks = text.rstrip().endswith("?") or QUESTION_START.match(text)
+    return n_words >= RIDDLE_MIN_WORDS and bool(asks)
+
+
+def not_riddle_text(text, n_words):
+    """Filler, or an intro or hint belonging to a code."""
+    read = Read(text, 1.0, n_words)
+    if not read.text or FILLER.fullmatch(read.text):
+        return True
+    return n_words <= SHORT_LINE_WORDS and (read.intro or is_hint(read.text, n_words >= 2))
 
 
 class Part:
     """One overlay message of a riddle, over every frame it's been read in."""
 
-    def __init__(self, text, t, stamp):
+    def __init__(self, text, n_words, y, t, stamp):
         self.reads = Counter({text: 1})
+        self.agreed = 1         # reads that match another, not just its place
+        self.n_words = n_words
+        self.y = y
         self.first_stamp = stamp
         self.last_seen = t
         self.confirmed = False
@@ -179,57 +253,126 @@ class Part:
 
 
 class RiddleTracker:
-    """Turns per-frame messages into riddles, reporting one as soon as two
-    frames agree on it. Follow-on messages, or a fuller read of the same one,
-    report the riddle again so the answer can be replaced.
+    """Turns per-frame messages into riddles.
+
+    Nothing counts until an intro arms it, the same way a code needs "code
+    is...". Without that, everything anyone says gets solved. A riddle intro
+    makes every line after it part of the riddle. A soft intro ("the code is...")
+    only lets a sentence through, since a plain code can follow one too. A
+    riddle is reported as soon as two frames agree on it, and again as more
+    arrives so the answer can be replaced.
 
     on_riddle gets (text, stamp), stamp being when the newest part was first on
-    screen. Intros and hints are left alone, they belong to the code reader.
+    screen. With riddle_intros off, only soft intros count: code mode wants
+    riddles posing as codes, not ones announced as riddles.
     """
 
-    def __init__(self, on_riddle):
+    def __init__(self, on_riddle, riddle_intros=True):
         self.on_riddle = on_riddle
+        self.riddle_intros = riddle_intros
         self.parts = []
         self.sent = ""
-        self.not_riddles = {}   # text -> when it was last seen
+        self.intro = ""         # the current intro line, normalized
+        self.intro_seen = None
+        self.sure = False       # the intro said riddle, so short lines count too
+        self.older = set()      # lines that were above the intro, normalized
+
+    def claimed(self, t):
+        """Is a riddle on screen or sure to come, so that no line is a code's?
+        One bad read isn't enough to go on: that would lose real codes."""
+        confirmed = [p for p in self.parts if p.confirmed]
+        if confirmed:
+            return t - max(p.last_seen for p in confirmed) <= JOIN_GAP
+        return self.sure and self.armed(t)
+
+    def armed(self, t):
+        """Could a new message at time t be part of a riddle?"""
+        if self.parts:
+            return not self._finished() and t - max(p.last_seen for p in self.parts) <= JOIN_GAP
+        return self.intro_seen is not None and t - self.intro_seen <= RIDDLE_WAIT
+
+    def _finished(self):
+        whole = any(p.confirmed and (p.n_words >= WHOLE_RIDDLE_WORDS or p.text.rstrip().endswith("?"))
+                    for p in self.parts)
+        return whole or sum(p.n_words for p in self.parts) >= RIDDLE_MAX_WORDS
 
     def feed(self, t, messages, stamp=None):
         stamp = t if stamp is None else stamp
-        for text, score, n_words, *_ in messages:
-            self._add(text, n_words, t, stamp)
-        confirmed = [p for p in self.parts if p.confirmed or sum(p.reads.values()) >= 2]
+        # Lines are added at the bottom, so anything above an intro came before
+        # it and can't be its riddle, even once the intro has been misread.
+        intro_at = max((i for i, m in enumerate(messages) if self._intro(m[0])[0] is not None), default=0)
+        for text, score, n_words, y in messages[intro_at:]:
+            self._add(text, n_words, y, t, stamp)
+        self.older.update(normalize(m[0]) for m in messages[:intro_at])
+        confirmed = [p for p in self.parts if p.confirmed or p.agreed >= 2]
         for part in confirmed:
             part.confirmed = True
         riddle = " ".join(p.text for p in confirmed)
-        if riddle and self._changed(riddle):
+        enough = (sum(p.n_words for p in confirmed) >= RIDDLE_MIN_WORDS
+                  and len(normalize(riddle)) >= RIDDLE_MIN_LETTERS)
+        if enough and self._changed(riddle):
             self.sent = riddle
             self.on_riddle(riddle, max(p.first_stamp for p in confirmed))
 
-    def _add(self, text, n_words, t, stamp):
-        read = Read(text, 1.0, n_words)
-        if self._not_a_riddle(read, n_words, t):
+    def _intro(self, text):
+        """(what follows the intro, whether it's a sure one), or (None, False)."""
+        rest = riddle_intro(text) if self.riddle_intros else None
+        if rest is not None:
+            return rest, True
+        return soft_intro(text), False
+
+    def _add(self, text, n_words, y, t, stamp):
+        rest, sure = self._intro(text)
+        if rest is not None:
+            self._saw_intro(text, sure, t)
+            if not rest:
+                return
+            text, n_words = rest, len(rest.split())
+        elif self._bad_read_of_intro(text):
             return
-        known = next((p for p in self.parts if p.matches(text)), None)
+        if any(similarity(normalize(text), line) >= SAME_TEXT for line in self.older):
+            return
+        known = self._part_for(text, n_words, y, t)
         if known:
+            known.agreed += known.matches(text)
             known.reads[text] += 1
             known.last_seen = t
-            return
-        recent = self.parts and t - max(p.last_seen for p in self.parts) <= JOIN_GAP
-        if recent:
-            if n_words >= 2:
-                self.parts.append(Part(text, t, stamp))
-        elif n_words >= RIDDLE_MIN_WORDS and len(read.text) >= RIDDLE_MIN_LETTERS:
-            self.parts = [Part(text, t, stamp)]
-            self.sent = ""
+            known.y = y
+        elif self.armed(t) and self._fits(text, n_words):
+            self.parts.append(Part(text, n_words, y, t, stamp))
 
-    def _not_a_riddle(self, read, n_words, t):
-        """Is this an intro or hint, or a bad read of one seen just now?"""
-        self.not_riddles = {text: seen for text, seen in self.not_riddles.items() if t - seen <= NOT_RIDDLE_MEMORY}
-        if n_words <= SHORT_LINE_WORDS and (read.intro or is_hint(read.text, n_words >= 2)):
-            if len(read.text) >= NOT_RIDDLE_MIN_LETTERS:
-                self.not_riddles[read.text] = t
-            return True
-        return any(fuzz.partial_ratio(text, read.text) >= SAME_TEXT for text in self.not_riddles)
+    def _part_for(self, text, n_words, y, t):
+        """The part this is another read of. A long message misread into
+        something unrecognizable is still sitting in the same place."""
+        known = next((p for p in self.parts if p.matches(text)), None)
+        if known or n_words < WHOLE_RIDDLE_WORDS:
+            return known
+        return next((p for p in self.parts if p.n_words >= WHOLE_RIDDLE_WORDS and p.last_seen < t
+                     and t - p.last_seen <= JOIN_GAP and abs(p.y - y) <= SAME_PLACE), None)
+
+    def _bad_read_of_intro(self, text):
+        """"this isfor100 dragohsBee" hides the words that mark an intro, and
+        a sign next to it can add more, so look for the intro inside the line."""
+        return len(self.intro) >= INTRO_MIN_LETTERS and fuzz.partial_ratio(self.intro, normalize(text)) >= SAME_TEXT
+
+    def _fits(self, text, n_words):
+        return not not_riddle_text(text, n_words) if self.sure else looks_like_riddle(text, n_words)
+
+    def _saw_intro(self, text, sure, t):
+        """A new intro starts a new riddle. The same one still on screen doesn't,
+        and a soft one can't take over from "the riddle is..."."""
+        if self.sure and not sure and self.armed(t):
+            return
+        same = (self.intro_seen is not None and t - self.intro_seen <= INTRO_GONE
+                and similarity(normalize(text), self.intro) >= SAME_TEXT)
+        if not same:
+            self.parts = []
+            self.sent = ""
+            self.older = set()
+            self.sure = False
+        self.sure = self.sure or sure
+        self.intro = normalize(text)
+        self.intro_seen = t
 
     def _changed(self, riddle):
         if not self.sent:
@@ -243,11 +386,13 @@ class RiddleTracker:
 FACTS_PATH = os.path.join(APP_DIR, "data", "sab_facts.md")
 SYSTEM_PROMPT_PATH = os.path.join(APP_DIR, "prompts", "riddle_system.txt")
 FACTS_LIMIT = 6
-FACT_MIN_COVERAGE = 0.6  # share of a riddle's words one fact must have, or the answer is a guess
+FACT_MIN_COVERAGE = 0.6  # share of a riddle's words the facts must have, or the answer is a guess
 FUZZY_WORD = 85          # how close a word must be to match; OCR drops and swaps letters
+GLUED_MIN_LETTERS = 6    # shorter words aren't worth trying to split
+STRAY_APOSTROPHE = re.compile(r"(?<=[a-z])'(?=[a-z]{2,})", re.I)
 STOPWORDS = set("""a about an and are as at be been but by came can come did do does for from game
-get gets got had has have how i in into is it its me my no not of on or out sab steal brainrot that
-the their this to was were what when where which who why will with you your""".split())
+get gets got had has have how i in into is it its me month my no not of on or out sab steal brainrot
+that the their this to was were what when where which who why will with year you your""".split())
 SOURCE_NOTE = re.compile(r"\s*\[source:[^\]]*\]", re.I)
 # Everything from this heading on is a conflict between sources, not a fact.
 UNREVIEWED = "## needs review"
@@ -273,10 +418,32 @@ class Facts:
         self.words = [words_of(line) for line in self.lines]
         counts = Counter(w for words in self.words for w in words)
         self.weight = {w: 1 + math.log(max(1, len(self.lines)) / n) for w, n in counts.items()}
+        self.vocabulary = {w for line in self.lines for w in re.findall(r"[a-z]+", line.lower()) if len(w) > 1 or w == "a"}
+
+    def unglue(self, text):
+        """Put back spaces OCR lost, wherever a word splits cleanly into ones
+        the facts use. "dragoncannelloni" stops the model cold, even with the
+        right fact in front of it. OCR also reads specks as apostrophes."""
+        text = STRAY_APOSTROPHE.sub(" ", text)
+        return re.sub(rf"[A-Za-z]{{{GLUED_MIN_LETTERS},}}", lambda m: self._split(m[0]), text)
+
+    def _split(self, word):
+        low = word.lower()
+        if low in self.vocabulary:
+            return word
+        fewest = {0: []}    # end of a stretch that splits into words -> those words
+        for end in range(1, len(low) + 1):
+            for start in sorted(fewest):
+                if low[start:end] in self.vocabulary:
+                    pieces = fewest[start] + [word[start:end]]
+                    if end not in fewest or len(pieces) < len(fewest[end]):
+                        fewest[end] = pieces
+        return " ".join(fewest[len(low)]) if len(low) in fewest else word
 
     def top(self, riddle, limit=FACTS_LIMIT):
-        """The best lines for a riddle, and the largest share of its words any
-        of them covers (0 to 1)."""
+        """The best lines for a riddle, and the share of its words they cover
+        between them (0 to 1). Together, because a riddle can ask two things at
+        once, with no one fact covering both."""
         query = words_of(riddle)
         hits = {}   # word in the facts -> the riddle's words it matches
         for w in self.weight:
@@ -285,9 +452,8 @@ class Facts:
                 hits[w] = matched
         scored = [(sum(self.weight[w] for w in words & hits.keys()), i) for i, words in enumerate(self.words)]
         scored = sorted((s for s in scored if s[0] > 0), key=lambda s: (-s[0], s[1]))[:limit]
-        coverage = max((len(set().union(*(hits[w] for w in self.words[i] & hits.keys()))) / len(query)
-                        for _, i in scored), default=0.0)
-        return [self.lines[i] for _, i in scored], coverage
+        covered = set().union(*(hits[w] for _, i in scored for w in self.words[i] & hits.keys()))
+        return [self.lines[i] for _, i in scored], len(covered) / max(1, len(query))
 
 
 # --- the model ---------------------------------------------------------------
@@ -297,6 +463,10 @@ MAX_ANSWER_TOKENS = 24
 ANSWER = re.compile(r"ANSWER\s*:\s*\[?(?P<answer>[^\]\n]*)", re.I)
 MONTH_DAY_YEAR = re.compile(r"\b(?P<month>jan\w*|feb\w*|mar\w*|apr\w*|may|jun\w*|jul\w*|aug\w*|sep\w*|oct\w*|nov\w*|dec\w*)"
                             r"\s+\d{1,2}(?:st|nd|rd|th)?,?\s+(?P<year>\d{4})\b", re.I)
+TRAILING_NUMBER = re.compile(r"\band\s+(?P<number>\d+)\W*$", re.I)
+REPEAT = re.compile(r"\b(?P<times>\d+)\s*times\b(?!\s*\d)", re.I)
+# The model's ways of saying this isn't a riddle, which must never get pasted.
+NOT_ANSWERS = {"NONE", "UNKNOWN", "NA", "NOTARIDDLE"}
 
 
 def load_system_prompt(path=SYSTEM_PROMPT_PATH):
@@ -329,7 +499,24 @@ def parse_answer(reply, riddle=""):
     answer = match["answer"]
     if "MONTHANDYEAR" in normalize(riddle):
         answer = MONTH_DAY_YEAR.sub(r"\g<month> \g<year>", answer)
-    return normalize(answer)
+    code = normalize(answer)
+    if not code or code in NOT_ANSWERS:
+        return ""
+    return follow_instructions(code, riddle)
+
+
+def follow_instructions(code, riddle):
+    """Sammy adds exact steps to riddles ("my favorite color 3 times and 67"),
+    which a small model finds the answer for and then drops."""
+    tail = TRAILING_NUMBER.search(riddle)
+    suffix = tail["number"] if tail else ""
+    if suffix and code.endswith(suffix):
+        code = code[:-len(suffix)]
+    repeat = REPEAT.search(riddle)
+    times = int(repeat["times"]) if repeat else 1
+    if 2 <= times <= 9 and code != code[:len(code) // times] * times:
+        code *= times
+    return code + suffix
 
 
 class LlamaServer:
@@ -456,9 +643,14 @@ class Solver:
         the server generating.
         """
         start = time.perf_counter()
-        facts, coverage = self.facts.top(riddle)
+        cleaned = self.facts.unglue(riddle)
+        facts, coverage = self.facts.top(cleaned)
+        # Facts that only share a word with the riddle pull the model toward
+        # game terms ("first one wins" -> DUELSMACHINE), so send good ones or none.
+        if coverage < FACT_MIN_COVERAGE:
+            facts = []
         body = json.dumps({
-            "messages": self.messages(riddle, facts), "temperature": 0, "max_tokens": MAX_ANSWER_TOKENS,
+            "messages": self.messages(cleaned, facts), "temperature": 0, "max_tokens": MAX_ANSWER_TOKENS,
             "stop": ["\n"], "stream": True, "cache_prompt": True,
             "chat_template_kwargs": {"enable_thinking": False},
         })

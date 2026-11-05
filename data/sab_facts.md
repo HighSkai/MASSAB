@@ -443,6 +443,14 @@ Steal a Brainrot had 30.1 billion lifetime visits when it passed 25 million conc
 Steal a Brainrot had more than 55 billion visits by January 2026. [source: https://www.story-kitchen.com/news/story-kitchen-partnering-with-steal-a-brainrot-creators-on-feature-adaptation-of-roblox-game]
 Steal a Brainrot had about 74.3 billion visits and about 29.7 million favorites on November 4, 2026. [source: https://games.roblox.com/v1/games?universeIds=7709344486]
 
+## Answers Sammy confirmed
+
+# These come from answers SpyderSammy gave after his own riddles, in recordings of his Admin Abuse.
+Scarino Crowino is a reskin of Fishino Clownino in Steal a Brainrot. [source: Sammy's answer FISHINOCLOWNINO15, recording 2026-11-05 13-27-35]
+Steal a Brainrot released on May 15, so the day in May it released is 15. [source: Sammy's answer FISHINOCLOWNINO15, recording 2026-11-05 13-27-35]
+Polaroidini is the rarest Brainrot in Steal a Brainrot besides Spyder Elephant, and 23 of it exist in total. [source: Sammy's answer POLAROIDINI23, recording 2026-11-05 13-33-07]
+SpyderSammy's favorite color is blue. [source: Sammy's answer BLUEBLUEBLUE67, recording 2026-11-05 13-34-03]
+
 ## Needs review
 
 # Every line in this section starts with # so the matcher skips it and the model never sees unresolved claims.

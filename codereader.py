@@ -223,6 +223,9 @@ class Read:
             self.intro = "CODE" in self.text
         else:
             self.intro = bool(CODE_WORD.search(raw.upper()) or re.fullmatch(r"[A-Z]*CODE(S|IS)?", self.text))
+        # "the code was FISHINOCLOWNINO15" gives away one that's over.
+        if "CODEWAS" in self.text:
+            self.intro = False
         # The code can sit on the intro line itself: "code: SPOOKY", "CODE IS SPOOKY".
         self.head = ""
         m = AFTER_CODE.match(raw) if self.intro else None

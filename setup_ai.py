@@ -43,6 +43,10 @@ def model_path(name=DEFAULT_MODEL):
     return os.path.join(MODELS_DIR, MODELS[name][2])
 
 
+def ai_installed(name=DEFAULT_MODEL):
+    return os.path.exists(LLAMA_SERVER) and os.path.exists(model_path(name))
+
+
 def sha256(path):
     digest = hashlib.sha256()
     with open(path, "rb") as f:

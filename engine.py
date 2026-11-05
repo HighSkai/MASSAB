@@ -28,7 +28,7 @@ import pyperclip
 import codereader
 from codereader import CodeReader, frames_from_screen, frames_from_video, paste_into, read_frame
 from riddle import FACTS_PATH, Facts, LlamaServer, RiddleTracker, Solver, load_system_prompt, read_rows
-from setup_ai import DEFAULT_MODEL, MODELS
+from setup_ai import DEFAULT_MODEL, MODELS, ai_installed
 
 MODES = ("code", "riddle", "auto")
 # Codes last seconds, so 4 frames a second is plenty. Riddles are on the clock.
@@ -77,9 +77,12 @@ class Engine:
         """Start the readers over, so half-read lines don't carry into a new mode."""
         self.copied = ""
         self.early = False
-        self.reader = CodeReader(end_gap=self.options.end_gap, expect_words=self.options.words,
-                                 on_partial=self.on_partial, on_ready=self.on_ready, on_code=self.on_code)
-        self.tracker = RiddleTracker(self.on_riddle)
+        self.reader = self.new_reader()
+        self.tracker = RiddleTracker(self.on_riddle, riddle_intros=self.mode != "code")
+
+    def new_reader(self):
+        return CodeReader(end_gap=self.options.end_gap, expect_words=self.options.words,
+                          on_partial=self.on_partial, on_ready=self.on_ready, on_code=self.on_code)
 
     def set_mode(self, mode):
         """Switch modes; safe from any thread, takes effect on the next frame."""
@@ -203,17 +206,22 @@ class Engine:
 
     def process(self, frame, stamp):
         self.frames_seen += 1
-        if self.mode != "riddle" and self.frames_seen % self.options.code_step == 0:
+        # Every mode watches for riddles: "the code is the rarity of dragon
+        # cannelloni and 67" looks like a code but needs solving.
+        messages = read_rows(self.ocr, frame)
+        if self.options.verbose:
+            self.emit("frame", reads=messages)
+        was_claimed = self.tracker.claimed(self.now)
+        self.tracker.feed(self.now, messages, stamp)
+        claimed = self.tracker.claimed(self.now)
+        # Those lines read as a code intro too, and the riddle would become its words.
+        if claimed and not was_claimed:
+            self.reader = self.new_reader()
+        if self.mode != "riddle" and not claimed and self.frames_seen % self.options.code_step == 0:
             reads = read_frame(self.ocr, frame)
             if self.options.verbose:
                 self.emit("frame", reads=reads)
             self.reader.feed(self.now, reads)
-        # While a code is coming in, its lines aren't a riddle.
-        if self.mode == "riddle" or (self.mode == "auto" and self.reader.trigger is None):
-            messages = read_rows(self.ocr, frame)
-            if self.options.verbose:
-                self.emit("frame", reads=messages)
-            self.tracker.feed(self.now, messages, stamp)
 
 
 def print_event(kind, now, **e):
@@ -275,7 +283,8 @@ def main():
                       verbose=args.verbose, model=args.model,
                       code_step=max(1, round(fps / CODE_FPS)) if args.mode == "auto" else 1)
     engine = Engine(options, lambda kind, now, **e: print_event(kind, now, words=args.words, **e))
-    if args.mode != "code" and not engine.start_ai():
+    # Code mode can do without the AI, but then a riddle posing as a code goes unsolved.
+    if (args.mode != "code" or ai_installed(args.model)) and not engine.start_ai():
         return 1
 
     if args.video:
