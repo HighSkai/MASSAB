@@ -26,7 +26,7 @@ from dataclasses import dataclass
 import pyperclip
 
 import codereader
-from codereader import CodeReader, frames_from_screen, frames_from_video, paste_into, read_frame
+from codereader import KEY_DELAY, CodeReader, frames_from_screen, frames_from_video, paste_into, read_frame
 from riddle import FACTS_PATH, Facts, LlamaServer, RiddleTracker, Solver, load_system_prompt, read_rows
 from setup_ai import DEFAULT_MODEL, MODELS, ai_installed
 
@@ -48,6 +48,7 @@ class Options:
     no_copy: bool = False
     no_paste: bool = False
     paste_window: str = "Roblox"
+    key_delay: float = KEY_DELAY    # seconds after each key of a paste
     verbose: bool = False
     model: str = DEFAULT_MODEL
     system_prompt: str = None   # None = prompts/riddle_system.txt
@@ -127,6 +128,10 @@ class Engine:
     def on_ai_error(self, message):
         self.emit("error", message=message)
 
+    def screen_blocked(self):
+        self.emit("error", message="Windows is blocking screen capture, maybe a lock screen or admin prompt. "
+                                   "Watching picks up again when it's gone.")
+
     def set_system_prompt(self, prompt):
         """Use this prompt from the next riddle on; safe from any thread."""
         self.options.system_prompt = prompt
@@ -144,7 +149,7 @@ class Engine:
             pyperclip.copy(code)
             if self.options.no_paste:
                 return "  (copied)"
-            if paste_into(self.options.paste_window):
+            if paste_into(self.options.paste_window, self.options.key_delay):
                 return "  (copied and pasted)"
             return f"  (copied, not pasted: {self.options.paste_window} isn't the active window)"
 
@@ -201,7 +206,8 @@ class Engine:
                 self.mode = self.next_mode
                 self.reset()
                 self.emit("mode", mode=self.mode)
-            self.process(frame, stamp)
+            if frame is not None:   # None while the screen can't be captured
+                self.process(frame, stamp)
         self.reader.finish()
 
     def process(self, frame, stamp):
@@ -271,6 +277,8 @@ def main():
     ap.add_argument("--no-paste", action="store_true", help="copy codes but don't paste them")
     ap.add_argument("--paste-window", default="Roblox",
                     help='only paste when the active window has exactly this title (default "Roblox")')
+    ap.add_argument("--key-delay", type=float, default=KEY_DELAY * 1000,
+                    help="milliseconds after each key of a paste (default 15)")
     ap.add_argument("--model", choices=MODELS, default=DEFAULT_MODEL, help="which downloaded model riddles use")
     ap.add_argument("--verbose", action="store_true", help="print every frame's OCR reads")
     args = ap.parse_args()
@@ -280,6 +288,7 @@ def main():
     fps = args.fps or (CODE_FPS if args.mode == "code" else RIDDLE_FPS)
     options = Options(mode=args.mode, words=args.words, end_gap=args.end_gap, copy_partial=args.copy_partial,
                       no_copy=args.no_copy, no_paste=args.no_paste, paste_window=args.paste_window,
+                      key_delay=args.key_delay / 1000,
                       verbose=args.verbose, model=args.model,
                       code_step=max(1, round(fps / CODE_FPS)) if args.mode == "auto" else 1)
     engine = Engine(options, lambda kind, now, **e: print_event(kind, now, words=args.words, **e))
@@ -291,7 +300,7 @@ def main():
         frames = frames_from_video(args.video, fps)
     else:
         region = tuple(int(v) for v in args.region.split(",")) if args.region else None
-        frames = frames_from_screen(fps, args.monitor, region)
+        frames = frames_from_screen(fps, args.monitor, region, engine.screen_blocked)
         print("Watching the screen. Ctrl+C to stop.")
     try:
         engine.run(frames)

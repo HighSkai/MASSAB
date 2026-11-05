@@ -30,7 +30,7 @@ from setup_ai import APP_DIR, DEFAULT_MODEL, MODELS, ai_installed
 
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 DEFAULTS = {
-    "mode": "auto", "words": 3, "end_gap": 6.0, "paste": True, "paste_window": "Roblox", "monitor": 1,
+    "mode": "auto", "words": 3, "end_gap": 6.0, "paste": True, "paste_window": "Roblox", "key_delay_ms": 15, "monitor": 1,
     "region": "", "hotkey": "F8", "hud": True, "model": DEFAULT_MODEL, "system_prompt": None,
 }
 LOW_VRAM_MIB = 500
@@ -252,7 +252,8 @@ class Panel(QMainWindow):
         # Frames always come at the riddle rate here, so a mode switch needs no
         # restart, and the code reader only gets as many as it's tuned for.
         return Options(mode=s["mode"], words=s["words"], end_gap=s["end_gap"], no_paste=not s["paste"],
-                       paste_window=s["paste_window"], model=s["model"], system_prompt=s["system_prompt"],
+                       paste_window=s["paste_window"], key_delay=s["key_delay_ms"] / 1000, model=s["model"],
+                       system_prompt=s["system_prompt"],
                        code_step=round(RIDDLE_FPS / CODE_FPS))
 
     # --- building the window --------------------------------------------------
@@ -354,6 +355,7 @@ class Panel(QMainWindow):
         self.gap_edit = QDoubleSpinBox(minimum=1, maximum=30, value=s["end_gap"], suffix=" s")
         self.paste_edit = QCheckBox(checked=s["paste"])
         self.window_edit = QLineEdit(s["paste_window"])
+        self.delay_edit = QSpinBox(minimum=5, maximum=60, value=s["key_delay_ms"], suffix=" ms")
         self.monitor_edit = QSpinBox(minimum=1, maximum=8, value=s["monitor"])
         self.region_edit = QLineEdit(s["region"], placeholderText="x,y,w,h (blank = whole monitor)")
         self.hotkey_edit = QComboBox()
@@ -368,6 +370,7 @@ class Panel(QMainWindow):
         form.addRow("A code ends after this long", self.gap_edit)
         form.addRow("Paste automatically", self.paste_edit)
         form.addRow("Only paste into the window titled", self.window_edit)
+        form.addRow("Wait after each pasted key", self.delay_edit)
         form.addRow("Monitor", self.monitor_edit)
         form.addRow("Watch only this area", self.region_edit)
         form.addRow("Mode hotkey", self.hotkey_edit)
@@ -376,6 +379,7 @@ class Panel(QMainWindow):
 
         for edit, signal in [(self.words_edit, "valueChanged"), (self.gap_edit, "valueChanged"),
                              (self.paste_edit, "toggled"), (self.window_edit, "editingFinished"),
+                             (self.delay_edit, "valueChanged"),
                              (self.monitor_edit, "valueChanged"), (self.region_edit, "editingFinished"),
                              (self.hotkey_edit, "currentTextChanged"), (self.hud_edit, "toggled"),
                              (self.model_edit, "currentTextChanged")]:
@@ -388,7 +392,8 @@ class Panel(QMainWindow):
         s = self.settings
         hotkey, model = s["hotkey"], s["model"]
         s.update(words=self.words_edit.value(), end_gap=self.gap_edit.value(), paste=self.paste_edit.isChecked(),
-                 paste_window=self.window_edit.text(), monitor=self.monitor_edit.value(),
+                 paste_window=self.window_edit.text(), key_delay_ms=self.delay_edit.value(),
+                 monitor=self.monitor_edit.value(),
                  region=self.region_edit.text(), hotkey=self.hotkey_edit.currentText(),
                  hud=self.hud_edit.isChecked(), model=self.model_edit.currentText())
         self.hud.setVisible(s["hud"])
@@ -462,7 +467,7 @@ class Panel(QMainWindow):
         """Runs on the worker thread. Anything going wrong has to reach the
         window, or watching would just silently stop."""
         try:
-            self.engine.run(frames_from_screen(RIDDLE_FPS, self.settings["monitor"], region))
+            self.engine.run(frames_from_screen(RIDDLE_FPS, self.settings["monitor"], region, self.engine.screen_blocked))
         except Exception as e:
             self.event.emit("error", {"message": f"Watching stopped: {e}"})
         self.event.emit("stopped", {})

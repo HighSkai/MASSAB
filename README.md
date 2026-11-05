@@ -67,6 +67,10 @@ The strip at the bottom left of the screen shows the mode, the answer, how long 
 
 An answer is pasted as soon as there is one, and replaced if more of the riddle arrives. Check it before you submit.
 
+If Windows blocks screen capture, for example at a lock screen or admin prompt, the log says so and watching carries on by itself once it's gone.
+
+A paste presses six keys with a short wait after each, 15 ms by default, so Roblox sees every one. If pastes go missing or come out wrong, raise **Wait after each pasted key** in Settings.
+
 **`GUESS`** means no line of the fact sheet covers the riddle, so the model answered from memory. Don't trust it.
 
 The system prompt can be edited in the **System prompt** tab, and takes effect on the next riddle. The reply has to keep the `ANSWER:` format. When the model replies `ANSWER: NONE`, nothing is pasted.
@@ -109,6 +113,7 @@ Changes apply the next time the AI loads.
 | `--no-paste` | Copy but don't paste |
 | `--no-copy` | Don't touch the clipboard, which also stops pasting |
 | `--paste-window TITLE` | Paste into the window with this exact title (default `Roblox`) |
+| `--key-delay N` | Milliseconds to wait after each key of a paste (default 15) |
 | `--model NAME` | `4b` or the smaller `2b`, which needs `setup_ai.py --model 2b` |
 | `--verbose` | Print every frame's OCR reads |
 

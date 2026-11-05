@@ -26,7 +26,6 @@ from riddle import FACTS_PATH, gpu_memory
 from setup_ai import DEFAULT_MODEL, MODELS
 
 LIMIT = 2.0
-PASTE_SECONDS = 0.18        # press_paste's six 30 ms key steps
 LOW_VRAM_MIB = 500
 CLIP = os.path.join(os.environ.get("CODEREADER_CLIPS", os.path.expanduser("~/Videos")), "2026-11-03 09-24-45.mp4")
 CLIP_TEXT = "month and year the first fuse machine in sab released"
@@ -198,7 +197,7 @@ def main():
     args = ap.parse_args()
     sys.stdout.reconfigure(errors="replace")
     # Roblox may well be the active window, so no step may press keys for real.
-    engine_module.paste_into = lambda title: time.sleep(PASTE_SECONDS) or True
+    engine_module.paste_into = lambda title, key_delay: time.sleep(6 * key_delay) or True
     report = Report()
     print(f"Open apps: {', '.join(running_apps()) or 'none of Roblox, Chrome, Discord, Spotify'}")
     if "Roblox" not in running_apps():

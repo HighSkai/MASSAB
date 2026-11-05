@@ -571,20 +571,41 @@ def frames_from_video(path, fps):
         i += step
 
 
-def frames_from_screen(fps, monitor=1, region=None):
+BLOCKED_RETRY = 0.25    # seconds between tries while the screen can't be captured
+
+
+def frames_from_screen(fps, monitor=1, region=None, on_blocked=None):
+    """Yield (seconds, frame) for as long as the caller wants them.
+
+    Windows refuses captures during a lock screen or an admin prompt. That
+    shouldn't end the watch, so this starts over with a fresh capture until the
+    screen is back. Frames are None meanwhile, so the caller can still stop, and
+    on_blocked is called once each time it happens.
+    """
     import mss
-    with mss.MSS() as sct:
-        if region:
-            x, y, w, h = region
-            box = {"left": x, "top": y, "width": w, "height": h}
-        else:
-            box = sct.monitors[monitor]
-        start = time.monotonic()
-        while True:
-            t0 = time.monotonic()
-            frame = np.ascontiguousarray(np.asarray(sct.grab(box))[..., :3])
-            yield t0 - start, frame
-            time.sleep(max(0.0, 1 / fps - (time.monotonic() - t0)))
+    from mss.exception import ScreenShotError
+    start = time.monotonic()
+    blocked = False
+    while True:
+        try:
+            with mss.MSS() as sct:
+                if region:
+                    x, y, w, h = region
+                    box = {"left": x, "top": y, "width": w, "height": h}
+                else:
+                    box = sct.monitors[monitor]
+                while True:
+                    t0 = time.monotonic()
+                    frame = np.ascontiguousarray(np.asarray(sct.grab(box))[..., :3])
+                    blocked = False
+                    yield t0 - start, frame
+                    time.sleep(max(0.0, 1 / fps - (time.monotonic() - t0)))
+        except ScreenShotError:
+            if on_blocked and not blocked:
+                on_blocked()
+            blocked = True
+            yield time.monotonic() - start, None
+            time.sleep(BLOCKED_RETRY)
 
 
 def active_window():
@@ -597,16 +618,21 @@ def active_window():
     return title.value
 
 
-def press_paste():
+# Long enough for a game to see each key at about 100 fps, for when 240 dips. A
+# game reads keys once a frame and can miss a press shorter than that.
+KEY_DELAY = 0.015
+
+
+def press_paste(key_delay=KEY_DELAY):
     """Ctrl+A then Ctrl+V in the active window, so a longer code replaces a
-    shorter one. Keys carry scan codes and stay down briefly: games read scan
-    codes and can miss a press shorter than a frame."""
+    shorter one. Keys carry scan codes and stay down briefly, because games read
+    scan codes."""
     user32 = ctypes.windll.user32
     ctrl, a, v, key_up = 0x11, 0x41, 0x56, 0x0002
 
     def key(vk, flags=0):
         user32.keybd_event(vk, user32.MapVirtualKeyW(vk, 0), flags, 0)
-        time.sleep(0.03)
+        time.sleep(key_delay)
 
     key(ctrl)
     try:
@@ -617,12 +643,12 @@ def press_paste():
         key(ctrl, key_up)
 
 
-def paste_into(title):
+def paste_into(title, key_delay=KEY_DELAY):
     """Paste the clipboard if the active window is titled exactly this (so a
     browser tab called "Roblox codes" doesn't count). Returns whether it did."""
     if active_window().casefold() != title.casefold():
         return False
-    press_paste()
+    press_paste(key_delay)
     return True
 
 
