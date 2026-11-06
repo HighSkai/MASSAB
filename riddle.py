@@ -390,9 +390,9 @@ FACT_MIN_COVERAGE = 0.6  # share of a riddle's words the facts must have, or the
 FUZZY_WORD = 85          # how close a word must be to match; OCR drops and swaps letters
 GLUED_MIN_LETTERS = 6    # shorter words aren't worth trying to split
 STRAY_APOSTROPHE = re.compile(r"(?<=[a-z])'(?=[a-z]{2,})", re.I)
-STOPWORDS = set("""a about an and are as at be been but by came can come did do does for from game
-get gets got had has have how i in into is it its me month my no not of on or out sab steal brainrot
-that the their this to was were what when where which who why will with year you your""".split())
+STOPWORDS = set("""a about an and animal are as at be been but by came can come creature did do does for from game
+get gets got had has have how i in into is it its kind me month my no not of on or out sab sort steal brainrot
+that the their this to type was were what when where which who why will with year you your""".split())
 SOURCE_NOTE = re.compile(r"\s*\[source:[^\]]*\]", re.I)
 # Everything from this heading on is a conflict between sources, not a fact.
 UNREVIEWED = "## needs review"
@@ -503,6 +503,12 @@ def parse_answer(reply, riddle=""):
     if not code or code in NOT_ANSWERS:
         return ""
     return follow_instructions(code, riddle)
+
+
+def strip_add_ons(riddle):
+    """The riddle without the steps follow_instructions applies. The model
+    refuses "the rarity of dragon cannelloni and 67" with the answer in front of it."""
+    return REPEAT.sub("", TRAILING_NUMBER.sub("", riddle)).strip()
 
 
 def follow_instructions(code, riddle):
@@ -635,22 +641,33 @@ class Solver:
 
     def solve(self, riddle, job=None):
         """Ask the model one riddle and wait for the reply. Returns None if job
-        stops being the newest one.
+        stops being the newest one."""
+        start = time.perf_counter()
+        cleaned = self.facts.unglue(strip_add_ons(riddle))
+        facts, coverage = self.facts.top(cleaned)
+        # Facts that only share a word with the riddle pull the model toward
+        # game terms ("first one wins" -> DUELSMACHINE), so send good ones or none.
+        if coverage < FACT_MIN_COVERAGE:
+            facts = []
+        reply = self.ask(cleaned, facts, job)
+        # Facts can also put it off a riddle it could answer alone.
+        if facts and reply is not None and not parse_answer(reply, riddle):
+            facts = []
+            reply = self.ask(cleaned, facts, job)
+        if reply is None:
+            return None
+        return Solved(riddle, parse_answer(reply, riddle), reply, facts, not facts, time.perf_counter() - start)
+
+    def ask(self, riddle, facts, job=None):
+        """One request to the model. Returns its reply, or None if job goes stale.
 
         The reply is streamed because that's what makes cancelling work: on
         Windows nothing can interrupt a blocking read from another thread, but
         between tokens this can notice it's stale and hang up, which also stops
         the server generating.
         """
-        start = time.perf_counter()
-        cleaned = self.facts.unglue(riddle)
-        facts, coverage = self.facts.top(cleaned)
-        # Facts that only share a word with the riddle pull the model toward
-        # game terms ("first one wins" -> DUELSMACHINE), so send good ones or none.
-        if coverage < FACT_MIN_COVERAGE:
-            facts = []
         body = json.dumps({
-            "messages": self.messages(cleaned, facts), "temperature": 0, "max_tokens": MAX_ANSWER_TOKENS,
+            "messages": self.messages(riddle, facts), "temperature": 0, "max_tokens": MAX_ANSWER_TOKENS,
             "stop": ["\n"], "stream": True, "cache_prompt": True,
             "chat_template_kwargs": {"enable_thinking": False},
         })
@@ -669,5 +686,4 @@ class Solver:
                     reply += (choices[0]["delta"].get("content") or "") if choices else ""
         finally:
             conn.close()
-        return Solved(riddle, parse_answer(reply, riddle), reply, facts, coverage < FACT_MIN_COVERAGE,
-                      time.perf_counter() - start)
+        return reply

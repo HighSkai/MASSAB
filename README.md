@@ -151,8 +151,8 @@ Riddles:
 2. **Wait for an intro.** Nothing counts until a riddle, code or prize intro. Lines above it came before it, so they're ignored.
 3. **Track messages.** Two frames that agree make a riddle. A message of 5 or more words, or one ending in `?`, is the whole riddle. After a riddle intro, shorter lines add up, like the words of a code.
 4. **Pick facts.** The fact sheet lines sharing the riddle's rarest words are chosen.
-5. **Ask the model.** `llama-server` runs on localhost with your system prompt, and the reply is streamed so newer text can cancel it.
-6. **Finish the answer.** Exact steps the model tends to drop are applied in code: `3 times` repeats the answer, and a final `and 67` adds the number.
+5. **Ask the model.** `llama-server` runs on localhost with your system prompt, and the reply is streamed so newer text can cancel it. If it refuses with facts in front of it, it's asked once more without them.
+6. **Finish the answer.** Exact steps are kept from the model and applied in code: `3 times` repeats the answer, and a final `and 67` adds the number.
 
 ## Known limits
 
