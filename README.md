@@ -57,9 +57,9 @@ Code mode also solves riddles that Sammy calls a code. It only skips ones he ann
 A riddle needs an intro, the same way a code does, so everyday chat is left alone:
 
 - **Riddle intros** have the word riddle, trivia, quiz or puzzle, or wording like "the question is": "here is the riddle...", "riddle is", "next riddle:", "RIDDLE TIME". Every line after one is part of the riddle.
-- **Code and prize lines** may lead to a riddle or a plain code: "the code is...", "this is for 100 dragons". Only a sentence or question after one counts as a riddle, so `KEYBOARD` stays a code.
+- **Code and prize lines** may lead to a riddle or a plain code: "the code is...", "this is for 100 dragons", "5 skibidis". Only a sentence or question after one counts as a riddle, so `KEYBOARD` stays a code.
 
-The riddle can be on the same line as either kind. Lines about one that's over, like "that was a bad riddle" or "the code was X", are ignored.
+The riddle can be on the same line as either kind. Lines about one that's over, like "that was a bad riddle", "the code was X" or "the answer was X", are ignored.
 
 Press **F8** in the game to switch modes. The hotkey can be changed in Settings.
 
@@ -152,7 +152,7 @@ Riddles:
 3. **Track messages.** Two frames that agree make a riddle. A message of 5 or more words, or one ending in `?`, is the whole riddle. After a riddle intro, shorter lines add up, like the words of a code.
 4. **Pick facts.** The fact sheet lines sharing the riddle's rarest words are chosen.
 5. **Ask the model.** `llama-server` runs on localhost with your system prompt, and the reply is streamed so newer text can cancel it. If it refuses with facts in front of it, it's asked once more without them.
-6. **Finish the answer.** Exact steps are kept from the model and applied in code: `3 times` repeats the answer, and a final `and 67` adds the number.
+6. **Finish the answer.** Exact steps are kept from the model and applied in code: `3 times` repeats the answer, a final `and 67` or `, 67` adds the number, and `and the day today` adds today's date.
 
 ## Known limits
 
@@ -162,7 +162,8 @@ Riddles:
 - Lines shown for under a second may not get enough clean reads.
 - Symbols in codes are dropped, so `X-RAY` becomes `XRAY`.
 - The code reader is tuned for 4 frames a second and drops codes at 12, so it only gets every third frame when riddles need more.
-- Riddles are only as good as the fact sheet, and the model can still pick the wrong line.
+- Riddles are only as good as the fact sheet, and the model can still pick the wrong line. Riddles about the day, like "the most op brainrot that released today", can't be answered from it.
+- `and the day today` uses this PC's date, so it's the day of the month where you are.
 - A riddle with no intro is missed, like `may favorite color 3 times and 67` in one recording, where the video starts at that line.
 - A chatty sentence within 8 seconds of an intro can reach the AI. It replies `NONE` to many of them, but not all, so a wrong answer can get pasted.
 - A plain code written as a sentence after "the code is" is treated as a riddle.

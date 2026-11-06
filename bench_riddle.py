@@ -15,6 +15,7 @@ import statistics
 import subprocess
 import sys
 import time
+from datetime import date
 
 import cv2
 import mss
@@ -29,9 +30,12 @@ LIMIT = 2.0
 LOW_VRAM_MIB = 500
 CLIP = os.path.join(os.environ.get("CODEREADER_CLIPS", os.path.expanduser("~/Videos")), "2026-11-03 09-24-45.mp4")
 CLIP_TEXT = "month and year the first fuse machine in sab released"
-# (riddle, accepted answers). The first five are Sammy's real riddles; the rest
+# (riddle, accepted answers). The first eight are Sammy's real riddles; the rest
 # are written from data/sab_facts.md in the same style.
 TRIVIA = [
+    ("my favorite color, name, 67", "BLUESAMMY67"),
+    ("my favorite travis scott album and 777", "ASTROWORLD777"),
+    ("what is the most op minifigure toy in the new\nseries 2 minifigures and the day today", f"GRIFFIN{date.today().day}"),
     ("What brainrot is scarino crowino a reskin\nof? and what day in may did sab release", "FISHINOCLOWNINO15"),
     ("the name of the rarest brainrot (besides spyder\nelephant) and how many of it total that exist", "POLAROIDINI23"),
     ("may favorite color 3 times and 67", "BLUEBLUEBLUE67"),
@@ -165,8 +169,10 @@ def bench_pipeline(engine, report):
         for n in range(ROUNDS):
             for k, (text, _) in enumerate(TRIVIA):
                 base = renderer.background(f"bg{(n * len(TRIVIA) + k) % 9}")
+                # A line break draws the text centered, the way the real overlay does.
+                riddle = text if "\n" in text else text + "\n"
                 screens = [cv2.resize(renderer.draw(base, lines), (1920, 1080), interpolation=cv2.INTER_LINEAR)
-                           for lines in ([], [INTRO], [INTRO, text])]
+                           for lines in ([], [INTRO], [INTRO, riddle])]
                 events = []
                 engine.on_event = lambda kind, now, **e: events.append((kind, e))
                 engine.reset()

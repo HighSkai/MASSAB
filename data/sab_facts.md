@@ -1052,8 +1052,11 @@ Steal a Brainrot had about 74.3 billion visits and about 29.7 million favorites 
 Scarino Crowino is a reskin of Fishino Clownino in Steal a Brainrot. [source: Sammy's answer FISHINOCLOWNINO15, recording 2026-11-05 13-27-35]
 Steal a Brainrot released on May 15, so the day in May it released is 15. [source: Sammy's answer FISHINOCLOWNINO15, recording 2026-11-05 13-27-35]
 Polaroidini is the rarest Brainrot in Steal a Brainrot besides Spyder Elephant, and 23 of it exist in total. [source: Sammy's answer POLAROIDINI23, recording 2026-11-05 13-33-07]
-SpyderSammy's favorite color is blue. [source: Sammy's answer BLUEBLUEBLUE67, recording 2026-11-05 13-34-03]
+Sammy's favorite color is blue. [source: Sammy's answer BLUEBLUEBLUE67, recording 2026-11-05 13-34-03]
 Tralalero Tralala is a shark. [source: answer to Sammy's riddle "what animal is tralalero", reported by the MASSAB user]
+Sammy's favorite color is blue and his name is Sammy. [source: accepted answer bluesammy67, recording 2026-11-05 21-06-18]
+Sammy's favorite Travis Scott album is Astroworld. [source: answer ASTROWORLD777 typed in recording 2026-11-05 21-07-03]
+The most op minifigure toy in the new Series 2 minifigures is the Griffin. [source: Sammy's answer GRIFFIN10, recording 2026-11-05 21-05-26]
 
 ## Needs review
 

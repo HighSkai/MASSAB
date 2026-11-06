@@ -20,6 +20,7 @@ import subprocess
 import threading
 import time
 from collections import Counter
+from datetime import date
 
 import cv2
 import numpy as np
@@ -35,13 +36,14 @@ BAND = (0.02, 0.07, 0.98, 0.36)
 # what's centered, with the icon hanging off to the left of it.
 CENTER_TOLERANCE = 0.03
 ICON_MARGIN = 0.005
-GLYPH_MIN_H, GLYPH_MAX_H = 8, 48
+GLYPH_MIN_H, GLYPH_MAX_H = 8, 64    # tall enough for videos that zoom in 1.7x
 ROW_MIN_LETTERS = 4
 # Two letters are neighbors if they're side by side and share this much of the
 # shorter one's height. A descender and the ascender below it barely overlap,
 # so wrapped rows stay apart, while a "d" and an "n" overlap fully.
 SHARED_HEIGHT = 0.5
-LOOK_BACK = 3   # letters at the end of a chain to try, in case the last is a speck
+LETTER_HEIGHTS = 1.7    # the tallest letter of a row against the shortest; a sign is far taller
+LOOK_BACK = 3  # letters at the end of a chain to try, in case the last is a speck
 # Pixels at WORK_H between the middles of two rows of one wrapped message. They
 # measure ~24 apart, while separate overlay lines are ~52 apart.
 WRAP_PITCH = 36
@@ -51,7 +53,8 @@ def neighbors(a, b):
     """Could b, further right, be the next letter after a?"""
     gap = b[0] - (a[0] + a[2])
     shared = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
-    return gap <= max(a[3], b[3]) and shared >= SHARED_HEIGHT * min(a[3], b[3])
+    similar = max(a[3], b[3]) <= LETTER_HEIGHTS * min(a[3], b[3])
+    return similar and gap <= max(a[3], b[3]) and shared >= SHARED_HEIGHT * min(a[3], b[3])
 
 
 def chain_letters(letters):
@@ -157,7 +160,8 @@ SHORT_LINE_WORDS = 5
 SAME_TEXT = 80          # similarity of two reads of one message
 RIDDLE_WAIT = 8.0       # a riddle can start this long after its intro was last seen
 INTRO_GONE = 3.0        # an intro back after this long is a new one, not the same line
-INTRO_MIN_LETTERS = 8   # shorter intros are too easy to find inside other lines
+INTRO_MIN_LETTERS = 6   # shorter intros are too easy to find inside other lines
+FRAGMENT_MIN_LETTERS = 4    # and shorter lines are too easy to find inside an intro
 JOIN_GAP = 2.0          # a message this soon after the last one continues the riddle
 LONGER_BY = 3           # letters a better read must add to count as an update
 # The word that makes a line a riddle intro: "here is the riddle...", "riddle
@@ -173,8 +177,11 @@ FILLER = re.compile(r"\d|(?:GET)?READY|GOODLUCK|HURRY(?:UP)?|(?:GO)+|OK|OKAY|LET
 # Sammy often says "code" and means a riddle: "the code is the rarity of dragon
 # cannelloni and 67". Or he names the prize: "this is for 100 dragons". Either
 # may lead to a riddle or to a plain code, so only a sentence after one counts.
-SOFT_INTRO = re.compile(r"codes?|this\s*(?:one\s*)?(?:is\s*|'?s\s*)?for\b|\bfor\s*\d+\s*\w+|\bprize|\breward", re.I)
+SOFT_INTRO = re.compile(r"codes?|this\s*(?:one\s*)?(?:is\s*|'?s\s*)?for\b|\bfor\s*\d+\s*\w+|\bprize|\breward"
+                        r"|^\W*\d+\s*[a-z]+s\W*$", re.I)    # the last one is a bare prize: "5 skibidis"
 QUESTION_START = re.compile(r"\s*(?:what|which|who|when|where|how|the name|name)\b", re.I)
+# Giving the answer away afterward: "the answer was GRIFFIN10", "it was polaroidini23".
+REVEAL = re.compile(r"(?:answer|code|^\W*it)\s*was\b", re.I)
 
 
 def over_already(text, match):
@@ -212,7 +219,9 @@ def looks_like_riddle(text, n_words):
     """A sentence or a question, not the words of a code ("SAB IS AMAZING")."""
     if not_riddle_text(text, n_words):
         return False
-    # Stray letters inflate the word count of short lines ("W a diamond one").
+    # Commas hide gaps from the image's count, and OCR can drop spaces from its
+    # own. Stray letters inflate both, so a sentence needs enough text as well.
+    n_words = max(n_words, len(text.split()))
     if n_words >= WHOLE_RIDDLE_WORDS and len(normalize(text)) >= SENTENCE_MIN_LETTERS and has_lower(text):
         return True
     asks = text.rstrip().endswith("?") or QUESTION_START.match(text)
@@ -222,7 +231,7 @@ def looks_like_riddle(text, n_words):
 def not_riddle_text(text, n_words):
     """Filler, or an intro or hint belonging to a code."""
     read = Read(text, 1.0, n_words)
-    if not read.text or FILLER.fullmatch(read.text):
+    if not read.text or FILLER.fullmatch(read.text) or REVEAL.search(text):
         return True
     return n_words <= SHORT_LINE_WORDS and (read.intro or is_hint(read.text, n_words >= 2))
 
@@ -287,14 +296,16 @@ class RiddleTracker:
 
     def armed(self, t):
         """Could a new message at time t be part of a riddle?"""
-        if self.parts:
-            return not self._finished() and t - max(p.last_seen for p in self.parts) <= JOIN_GAP
+        # Only confirmed parts count: one misread mustn't cut the wait short.
+        confirmed = [p for p in self.parts if p.confirmed]
+        if confirmed:
+            return not self._finished(confirmed) and t - max(p.last_seen for p in confirmed) <= JOIN_GAP
         return self.intro_seen is not None and t - self.intro_seen <= RIDDLE_WAIT
 
-    def _finished(self):
-        whole = any(p.confirmed and (p.n_words >= WHOLE_RIDDLE_WORDS or p.text.rstrip().endswith("?"))
-                    for p in self.parts)
-        return whole or sum(p.n_words for p in self.parts) >= RIDDLE_MAX_WORDS
+    @staticmethod
+    def _finished(confirmed):
+        whole = any(p.n_words >= WHOLE_RIDDLE_WORDS or p.text.rstrip().endswith("?") for p in confirmed)
+        return whole or sum(p.n_words for p in confirmed) >= RIDDLE_MAX_WORDS
 
     def feed(self, t, messages, stamp=None):
         stamp = t if stamp is None else stamp
@@ -351,9 +362,12 @@ class RiddleTracker:
                      and t - p.last_seen <= JOIN_GAP and abs(p.y - y) <= SAME_PLACE), None)
 
     def _bad_read_of_intro(self, text):
-        """"this isfor100 dragohsBee" hides the words that mark an intro, and
-        a sign next to it can add more, so look for the intro inside the line."""
-        return len(self.intro) >= INTRO_MIN_LETTERS and fuzz.partial_ratio(self.intro, normalize(text)) >= SAME_TEXT
+        """"this isfor100 dragohsBee" hides the words that mark an intro, a sign
+        next to it can add more, and a video zooming past it leaves just "ddle".
+        So look for one inside the other."""
+        letters = normalize(text)
+        return (len(self.intro) >= INTRO_MIN_LETTERS and len(letters) >= FRAGMENT_MIN_LETTERS
+                and fuzz.partial_ratio(self.intro, letters) >= SAME_TEXT)
 
     def _fits(self, text, n_words):
         return not not_riddle_text(text, n_words) if self.sure else looks_like_riddle(text, n_words)
@@ -463,7 +477,8 @@ MAX_ANSWER_TOKENS = 24
 ANSWER = re.compile(r"ANSWER\s*:\s*\[?(?P<answer>[^\]\n]*)", re.I)
 MONTH_DAY_YEAR = re.compile(r"\b(?P<month>jan\w*|feb\w*|mar\w*|apr\w*|may|jun\w*|jul\w*|aug\w*|sep\w*|oct\w*|nov\w*|dec\w*)"
                             r"\s+\d{1,2}(?:st|nd|rd|th)?,?\s+(?P<year>\d{4})\b", re.I)
-TRAILING_NUMBER = re.compile(r"\band\s+(?P<number>\d+)\W*$", re.I)
+TRAILING_NUMBER = re.compile(r"(?:and\s*|,\s*)(?P<number>\d+)\W*$", re.I)    # OCR can glue it: "albumand777"
+TRAILING_DAY = re.compile(r"(?:\band\s+|,\s*)(?:(?:the\s+)?(?:day|date)\s+today|today'?s\s+(?:day|date))\W*$", re.I)
 REPEAT = re.compile(r"\b(?P<times>\d+)\s*times\b(?!\s*\d)", re.I)
 # The model's ways of saying this isn't a riddle, which must never get pasted.
 NOT_ANSWERS = {"NONE", "UNKNOWN", "NA", "NOTARIDDLE"}
@@ -505,21 +520,36 @@ def parse_answer(reply, riddle=""):
     return follow_instructions(code, riddle)
 
 
+def split_add_ons(riddle, day=None):
+    """(the question, times to repeat its answer, what goes on the end of it).
+
+    Sammy adds exact steps to riddles: "my favorite color 3 times and 67", "...
+    and the day today". A small model finds the answer and then drops them, and
+    can't know the date, so they're done in code.
+    """
+    question, suffix = riddle.strip(), ""
+    while True:
+        number, today = TRAILING_NUMBER.search(question), TRAILING_DAY.search(question)
+        if not number and not today:
+            break
+        suffix = (number["number"] if number else str(day or date.today().day)) + suffix
+        question = question[:(number or today).start()].rstrip(" ,")
+    repeat = REPEAT.search(question)
+    if repeat:
+        question = (question[:repeat.start()] + question[repeat.end():]).strip(" ,")
+    return question, int(repeat["times"]) if repeat else 1, suffix
+
+
 def strip_add_ons(riddle):
-    """The riddle without the steps follow_instructions applies. The model
-    refuses "the rarity of dragon cannelloni and 67" with the answer in front of it."""
-    return REPEAT.sub("", TRAILING_NUMBER.sub("", riddle)).strip()
+    """The riddle as the model should see it. It refuses "the rarity of dragon
+    cannelloni and 67" with the answer in front of it."""
+    return split_add_ons(riddle)[0]
 
 
-def follow_instructions(code, riddle):
-    """Sammy adds exact steps to riddles ("my favorite color 3 times and 67"),
-    which a small model finds the answer for and then drops."""
-    tail = TRAILING_NUMBER.search(riddle)
-    suffix = tail["number"] if tail else ""
+def follow_instructions(code, riddle, day=None):
+    _, times, suffix = split_add_ons(riddle, day)
     if suffix and code.endswith(suffix):
         code = code[:-len(suffix)]
-    repeat = REPEAT.search(riddle)
-    times = int(repeat["times"]) if repeat else 1
     if 2 <= times <= 9 and code != code[:len(code) // times] * times:
         code *= times
     return code + suffix
