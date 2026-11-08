@@ -68,13 +68,6 @@ QPushButton#go[running="true"]:hover {
 QPushButton#go:disabled { color: #f4f4f4; border-color: #a8b7c4;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #e9eef2, stop:1 #bccad6); }
 
-QPushButton[seg] { border-radius: 0; padding: 5px 15px; }
-QPushButton[seg="first"] { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-QPushButton[seg="last"] { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
-QPushButton[seg="mid"], QPushButton[seg="last"] { border-left: none; }
-QPushButton[seg]:checked { color: white; font-weight: 600; border-color: #1a6aa8;
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #a3ddff, stop:0.48 #4caeea, stop:0.52 #1f8fd6, stop:1 #56c3ff); }
-
 QPushButton#nav { border: 1px solid transparent; border-radius: 14px; padding: 5px 18px; background: transparent;
     color: #1f5683; font-weight: 600; }
 QPushButton#nav:hover { border-color: rgba(255, 255, 255, 200); background: rgba(255, 255, 255, 110); }
@@ -150,7 +143,7 @@ QMenu::item:disabled { color: #9fb2c4; }
 QToolTip { color: %(ink)s; background: #f4fbff; border: 1px solid #7fb2dc; padding: 4px; }
 
 QFrame#hud { border-radius: 12px; }
-QLabel#hudMode { color: white; font-weight: 700; padding: 1px 8px; border-radius: 8px; border: 1px solid rgba(160, 225, 255, 160);
+QLabel#hudKind { color: white; font-weight: 700; padding: 1px 8px; border-radius: 8px; border: 1px solid rgba(160, 225, 255, 160);
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(120, 205, 255, 230), stop:0.5 rgba(40, 150, 225, 230),
     stop:1 rgba(30, 120, 200, 230)); }
 QLabel#hudAnswer { color: white; font-weight: 600; }

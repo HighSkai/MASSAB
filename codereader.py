@@ -10,11 +10,11 @@ Usage:
     python codereader.py                      # watch the primary monitor live
     python codereader.py --region 0,120,1280,720   # only a windowed video player
     python codereader.py --video clip.mp4     # test on a recording
-    python codereader.py --mode riddle        # solve riddles with the local AI
-    python codereader.py --mode auto          # codes and riddles, whichever comes
 
-Codes are printed, copied to the clipboard, and pasted into the game if its
-window is active. Click the Codes box first so the paste lands there.
+Codes and riddles are both watched for. Riddles are solved by the local AI, if
+setup_ai.py has installed it. Answers are printed, copied to the clipboard, and
+pasted into the game if its window is active. Click the Codes box first so the
+paste lands there.
 """
 import ctypes
 import itertools

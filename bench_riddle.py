@@ -22,7 +22,7 @@ import mss
 
 import engine as engine_module
 from codereader import frames_from_video, normalize, similarity
-from engine import RIDDLE_FPS, Engine, Options
+from engine import CODE_FPS, RIDDLE_FPS, Engine, Options
 from riddle import FACTS_PATH, gpu_memory
 from setup_ai import DEFAULT_MODEL, MODELS
 
@@ -216,7 +216,8 @@ def main():
         if kind == "error":
             print("error:", e["message"])
 
-    engine = Engine(Options(mode="riddle", model=args.model, facts_path=args.facts), show)
+    # The code reader runs alongside, the way it does in the app.
+    engine = Engine(Options(model=args.model, facts_path=args.facts, code_step=round(RIDDLE_FPS / CODE_FPS)), show)
     start = time.perf_counter()
     if not engine.start_ai():
         return 1

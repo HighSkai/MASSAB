@@ -24,7 +24,7 @@ of? and what day in may did sab release
 
 A local AI model answers them using a fact sheet, and `FISHINOCLOWNINO15` is pasted in about a second. The parts of an answer are joined together, the way Sammy's codes are.
 
-Sammy often calls a riddle a code: `the code is the rarity of dragon cannelloni and 67`. All three modes treat that as a riddle, so the answer is `SECRET67`, not the sentence.
+Sammy often calls a riddle a code: `the code is the rarity of dragon cannelloni and 67`. MASSAB treats that as a riddle, so the answer is `SECRET67`, not the sentence.
 
 It's built for one overlay style: white outlined text near the top center of the screen, with a red-hat emoji icon beside each line. Other overlays won't be detected.
 
@@ -38,7 +38,7 @@ python -m venv .venv
 .venv\Scripts\python setup_ai.py
 ```
 
-`setup_ai.py` downloads `llama-server` and the Qwen3.5-4B model (about 3 GB) into `bin\` and `models\`, and checks their hashes. Code mode works without them, but can't solve a riddle that's posing as a code.
+`setup_ai.py` downloads `llama-server` and the Qwen3.5-4B model (about 3 GB) into `bin\` and `models\`, and checks their hashes. Without them MASSAB still reads codes, but can't solve riddles.
 
 ## Usage
 
@@ -46,13 +46,7 @@ python -m venv .venv
 2. Open the Codes menu in Roblox and click the text box.
 3. Press **Start** in MASSAB and go back to the game.
 
-| Mode | What it does |
-|---|---|
-| Code | Reads codes only |
-| Riddle | Reads riddles only |
-| Auto | Both, whichever comes |
-
-Code mode also solves riddles that Sammy calls a code. It only skips ones he announces as riddles.
+There's nothing to pick. MASSAB watches for codes and riddles at the same time and works out which one is on screen.
 
 A riddle needs an intro, the same way a code does, so everyday chat is left alone:
 
@@ -61,8 +55,6 @@ A riddle needs an intro, the same way a code does, so everyday chat is left alon
 
 The riddle can be on the same line as either kind. Lines about one that's over, like "that was a bad riddle", "the code was X" or "the answer was X", are ignored.
 
-Press **F8** in the game to switch modes. The hotkey can be changed in Settings.
-
 The window has four pages:
 
 | Page | What's on it |
@@ -70,9 +62,9 @@ The window has four pages:
 | Home | The last answer, with how long each step took, and a log of everything that happened |
 | Chat | Ask the AI anything. It's the riddle model, so it's quick but small |
 | Overlay | Where on screen MASSAB reads, a box that shows it over the game, and the strip |
-| Settings | Codes, pasting, the AI and the hotkey |
+| Settings | Codes, pasting and the AI |
 
-The strip at the bottom left of the screen shows the mode, the answer, how long it took and whether it pasted. It can't be clicked and never takes focus, because pasting only works while the active window's title is exactly `Roblox`. If it isn't, the answer is still copied. Its corner, size and how see-through it is are on the Overlay page.
+The strip at the bottom left of the screen shows whether it's a code or a riddle, the answer, how long it took and whether it pasted. It can't be clicked and never takes focus, because pasting only works while the active window's title is exactly `Roblox`. If it isn't, the answer is still copied. Its corner, size and how see-through it is are on the Overlay page.
 
 ### The reading area and box
 
@@ -114,8 +106,9 @@ Changes apply the next time the AI loads.
 
 ```bash
 .venv\Scripts\python codereader.py
-.venv\Scripts\python codereader.py --mode riddle
 ```
+
+It reads codes and riddles together, like the window does. Without the AI installed it still reads codes.
 
 ```
 [   5.3s] CODE: KEYBOARDESCAPEIS  (copied and pasted)  [3 words in, will update if more come]
@@ -125,11 +118,10 @@ Changes apply the next time the AI loads.
 
 | Option | What it does |
 |---|---|
-| `--mode MODE` | `code`, `riddle` or `auto` (default `code`) |
 | `--video FILE` | Read a recording instead of the screen |
 | `--monitor N` | Monitor to watch (default 1, the primary) |
 | `--region x,y,w,h` | Watch only this area, for a video that doesn't fill the screen |
-| `--fps N` | Frames to check per second (default 4, or 12 for riddle and auto) |
+| `--fps N` | Frames to check per second (default 12). The code reader only gets about 4 of them |
 | `--words N` | Copy once this many words are in (default 3, 0 = wait for the end) |
 | `--end-gap N` | Seconds with no new word before a code counts as finished (default 6) |
 | `--copy-partial` | Update the clipboard with every new word |

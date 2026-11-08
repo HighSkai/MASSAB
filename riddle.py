@@ -275,13 +275,11 @@ class RiddleTracker:
     arrives so the answer can be replaced.
 
     on_riddle gets (text, stamp), stamp being when the newest part was first on
-    screen. With riddle_intros off, only soft intros count: code mode wants
-    riddles posing as codes, not ones announced as riddles.
+    screen.
     """
 
-    def __init__(self, on_riddle, riddle_intros=True):
+    def __init__(self, on_riddle):
         self.on_riddle = on_riddle
-        self.riddle_intros = riddle_intros
         self.parts = []
         self.sent = ""
         self.intro = ""         # the current intro line, normalized
@@ -330,7 +328,7 @@ class RiddleTracker:
 
     def _intro(self, text):
         """(what follows the intro, whether it's a sure one), or (None, False)."""
-        rest = riddle_intro(text) if self.riddle_intros else None
+        rest = riddle_intro(text)
         if rest is not None:
             return rest, True
         return soft_intro(text), False
@@ -410,6 +408,15 @@ STRAY_APOSTROPHE = re.compile(r"(?<=[a-z])'(?=[a-z]{2,})", re.I)
 STOPWORDS = set("""a about an and animal are as at be been but by came can come creature did do does for from game
 get gets got had has have how i in into is it its kind me month my no not of on or out sab sort steal brainrot
 that the their this to type was were what when where which who why will with year you your""".split())
+# Facts go only to a riddle that names something from the game. These words do
+# it on their own; "sab", "brainrot" and "my" are stopwords for ranking, so the
+# check reads the riddle's own words.
+GAME_WORDS = set("""sab brainrot brainrots sammy sammys spydersammy rebirth rebirths mutation mutations trait traits
+rarity fuse og admin taco robux roblox favorite favourite update""".split())
+NAME_MIN_LINES = 3      # a capitalized word in fewer lines is likely just a word in a title ("Nine Thousand")
+NAME_MAX_LOWER = 0.03   # a name is lowercase in at most this share of its uses
+FUZZY_NAME_MIN = 6      # shorter words look like too many names ("room" and "Broom", "more" and "Morte")
+NAME_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9']*")
 SOURCE_NOTE = re.compile(r"\s*\[source:[^\]]*\]", re.I)
 # Everything from this heading on is a conflict between sources, not a fact.
 UNREVIEWED = "## needs review"
@@ -417,6 +424,10 @@ UNREVIEWED = "## needs review"
 
 def words_of(text):
     return {w for w in re.findall(r"[a-z0-9']+", text.lower()) if w not in STOPWORDS}
+
+
+def plain(word):
+    return word.lower().replace("'", "")
 
 
 class Facts:
@@ -436,6 +447,53 @@ class Facts:
         counts = Counter(w for words in self.words for w in words)
         self.weight = {w: 1 + math.log(max(1, len(self.lines)) / n) for w, n in counts.items()}
         self.vocabulary = {w for line in self.lines for w in re.findall(r"[a-z]+", line.lower()) if len(w) > 1 or w == "a"}
+        self.names, self.name_pairs = self._names()
+
+    def _names(self):
+        """What the facts treat as names: words they always capitalize (Meowl,
+        Cannelloni), capitalized pairs (Craft Machine, Series 2), and numbers
+        that are Brainrots (67)."""
+        upper, lower, lines_with = Counter(), Counter(), Counter()
+        names, pairs = set(), set()
+        for line in self.lines:
+            number = re.match(r"(\d[\dx]*)\b(?= is | are | in Steal a Brainrot)", line)
+            if number:
+                names.add(number[1].lower())
+            pairs.update((a.lower(), n) for a, n in re.findall(r"\b([A-Z][a-z]{3,}) (\d+)\b", line))
+            lines_with.update({plain(w) for w in NAME_TOKEN.findall(line)})
+            for sentence in re.split(r"(?<=[.!?])\s+", line):
+                words = re.findall(r"[A-Za-z][A-Za-z']*", sentence)
+                for k, w in enumerate(words):
+                    if not w[0].isupper():
+                        lower[plain(w)] += 1
+                    elif k:     # the first word of a sentence is capitalized anyway
+                        upper[plain(w)] += 1
+                pairs.update((plain(a), plain(b)) for a, b in zip(words, words[1:])
+                             if a[0].isupper() and b[0].isupper() and max(len(a), len(b)) >= 4
+                             and plain(a) not in STOPWORDS and plain(b) not in STOPWORDS)
+        names.update(w for w, n in upper.items() if len(w) >= 4 and lines_with[w] >= NAME_MIN_LINES
+                     and lower[w] <= NAME_MAX_LOWER * (n + lower[w]))
+        return names, pairs
+
+    def about_game(self, riddle):
+        """Does the riddle name something from the game? With thousands of
+        lines, "what runs but never walks" finds all its words somewhere, but
+        names none of the game's things."""
+        words = [plain(w) for w in NAME_TOKEN.findall(riddle)]
+        if any(w in GAME_WORDS or w in self.names for w in words):
+            return True
+        if any(pair in self.name_pairs for pair in zip(words, words[1:])):
+            return True
+        # OCR drops and swaps letters, which long names survive.
+        return any(len(w) >= FUZZY_NAME_MIN and self._near_name(w) for w in words)
+
+    def _near_name(self, word):
+        """A name one OCR slip away, but not just its plural ("forests" isn't "Forest")."""
+        for name in self.names:
+            if (abs(len(name) - len(word)) <= 2 and word not in (name + "s", name + "es")
+                    and name not in (word + "s", word + "es") and fuzz.ratio(name, word) >= FUZZY_WORD):
+                return True
+        return False
 
     def unglue(self, text):
         """Put back spaces OCR lost, wherever a word splits cleanly into ones
@@ -467,8 +525,19 @@ class Facts:
             matched = {q for q in query if w == q or (len(w) > 3 and fuzz.ratio(w, q) >= FUZZY_WORD)}
             if matched:
                 hits[w] = matched
-        scored = [(sum(self.weight[w] for w in words & hits.keys()), i) for i, words in enumerate(self.words)]
-        scored = sorted((s for s in scored if s[0] > 0), key=lambda s: (-s[0], s[1]))[:limit]
+        scored = []
+        for i, words in enumerate(self.words):
+            # Each riddle word counts once per line, and a look-alike never
+            # outweighs the word itself: otherwise "Piccionetta Machina" plus
+            # "Machine" beats the line that says when the Trade Machine came out.
+            best = {}
+            for w in words & hits.keys():
+                for q in hits[w]:
+                    worth = self.weight[w] if w == q else min(self.weight[w], self.weight.get(q, self.weight[w]))
+                    best[q] = max(best.get(q, 0), worth)
+            if best:
+                scored.append((sum(best.values()), i))
+        scored = sorted(scored, key=lambda s: (-s[0], s[1]))[:limit]
         covered = set().union(*(hits[w] for _, i in scored for w in self.words[i] & hits.keys()))
         return [self.lines[i] for _, i in scored], len(covered) / max(1, len(query))
 
@@ -679,8 +748,9 @@ class Solver:
         cleaned = self.facts.unglue(strip_add_ons(riddle))
         facts, coverage = self.facts.top(cleaned)
         # Facts that only share a word with the riddle pull the model toward
-        # game terms ("first one wins" -> DUELSMACHINE), so send good ones or none.
-        if coverage < FACT_MIN_COVERAGE:
+        # game terms ("first one wins" -> DUELSMACHINE), so send good ones or none,
+        # and none to a riddle that names nothing from the game.
+        if coverage < FACT_MIN_COVERAGE or not self.facts.about_game(cleaned):
             facts = []
         reply = self.ask(cleaned, facts, job)
         # Facts can also put it off a riddle it could answer alone.

@@ -1,8 +1,8 @@
 """The capture loop behind both the command line and the GUI.
 
-Frames go to the code reader, the riddle tracker or both, depending on the
-mode, and whatever comes out is copied and pasted here. Everything that happens
-is reported through one on_event(kind, now=seconds, ...) callback:
+Every frame goes to the riddle tracker, and to the code reader unless a riddle
+has the screen. Whatever comes out is copied and pasted here. Everything that
+happens is reported through one on_event(kind, now=seconds, ...) callback:
 
     building    code            a code is being collected
     code        code note ready a code was copied (ready: more words may come)
@@ -13,7 +13,6 @@ is reported through one on_event(kind, now=seconds, ...) callback:
                                 text first appeared on screen, paste included
     no_answer   solved          the model gave nothing usable
     ai          state           "loading", "ready" or "off"
-    mode        mode            the mode changed
     error       message
     frame       reads           every frame's OCR reads (verbose only)
     rows        boxes           each text row found in a frame, as (x0, y0, x1, y1, text)
@@ -32,10 +31,9 @@ from codereader import KEY_DELAY, CodeReader, frames_from_screen, frames_from_vi
 from riddle import FACTS_PATH, Facts, LlamaServer, RiddleTracker, Solver, load_system_prompt, read_rows
 from setup_ai import DEFAULT_MODEL, MODELS, ai_installed
 
-MODES = ("code", "riddle", "auto")
 # Codes last seconds, so 4 frames a second is plenty. Riddles are on the clock.
-# The code reader is tuned for its rate and drops codes at 12, so when frames
-# come in faster for riddles it still only gets every third one.
+# The code reader is tuned for its rate and drops codes at 12, so with frames
+# coming in at the riddle rate it only gets every third one.
 CODE_FPS, RIDDLE_FPS = 4, 12
 # The first request is the slow one. A real riddle pays that with a full prompt.
 WARM_UP_RIDDLE = "month and year the first fuse machine in sab released"
@@ -43,7 +41,6 @@ WARM_UP_RIDDLE = "month and year the first fuse machine in sab released"
 
 @dataclass
 class Options:
-    mode: str = "code"
     words: int = 3
     end_gap: float = 6.0
     copy_partial: bool = False
@@ -63,8 +60,6 @@ class Engine:
     def __init__(self, options, on_event):
         self.options = options
         self.on_event = on_event
-        self.mode = options.mode
-        self.next_mode = options.mode
         self.now = 0.0
         self.frames_seen = 0
         self.ocr = None
@@ -78,19 +73,15 @@ class Engine:
         self.on_event(kind, now=self.now, **fields)
 
     def reset(self):
-        """Start the readers over, so half-read lines don't carry into a new mode."""
+        """Start the readers over, so half-read lines don't carry into the next watch."""
         self.copied = ""
         self.early = False
         self.reader = self.new_reader()
-        self.tracker = RiddleTracker(self.on_riddle, riddle_intros=self.mode != "code")
+        self.tracker = RiddleTracker(self.on_riddle)
 
     def new_reader(self):
         return CodeReader(end_gap=self.options.end_gap, expect_words=self.options.words,
                           on_partial=self.on_partial, on_ready=self.on_ready, on_code=self.on_code)
-
-    def set_mode(self, mode):
-        """Switch modes; safe from any thread, takes effect on the next frame."""
-        self.next_mode = mode
 
     def stop(self):
         self.stopping.set()
@@ -205,18 +196,14 @@ class Engine:
             stamp = time.perf_counter()
             if self.stopping.is_set():
                 break
-            if self.next_mode != self.mode:
-                self.mode = self.next_mode
-                self.reset()
-                self.emit("mode", mode=self.mode)
             if frame is not None:   # None while the screen can't be captured
                 self.process(frame, stamp)
         self.reader.finish()
 
     def process(self, frame, stamp):
         self.frames_seen += 1
-        # Every mode watches for riddles: "the code is the rarity of dragon
-        # cannelloni and 67" looks like a code but needs solving.
+        # Riddles come first: "the code is the rarity of dragon cannelloni and
+        # 67" looks like a code but needs solving.
         if self.options.show_reads:
             boxes = []
             messages = read_rows(self.ocr, frame, boxes)
@@ -231,7 +218,7 @@ class Engine:
         # Those lines read as a code intro too, and the riddle would become its words.
         if claimed and not was_claimed:
             self.reader = self.new_reader()
-        if self.mode != "riddle" and not claimed and self.frames_seen % self.options.code_step == 0:
+        if not claimed and self.frames_seen % self.options.code_step == 0:
             reads = read_frame(self.ocr, frame)
             if self.options.verbose:
                 self.emit("frame", reads=reads)
@@ -267,11 +254,10 @@ def print_event(kind, now, **e):
 
 def main():
     ap = argparse.ArgumentParser(description=codereader.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--mode", choices=MODES, default="code",
-                    help="code, riddle (local AI) or auto (both, whichever comes) (default code)")
     ap.add_argument("--video", help="read from a video file instead of the screen")
-    ap.add_argument("--fps", type=float, help=f"frames to check per second (default {CODE_FPS}, "
-                                              f"or {RIDDLE_FPS} in riddle and auto modes)")
+    ap.add_argument("--fps", type=float, default=RIDDLE_FPS,
+                    help=f"frames to check per second (default {RIDDLE_FPS}). The code reader only "
+                         f"gets about {CODE_FPS} of them")
     ap.add_argument("--monitor", type=int, default=1, help="monitor to capture, 1 = primary")
     ap.add_argument("--region", help="capture only x,y,w,h (e.g. a windowed video player)")
     ap.add_argument("--words", type=int, default=3,
@@ -293,22 +279,23 @@ def main():
     # Raw OCR reads can contain characters the Windows console can't print.
     sys.stdout.reconfigure(errors="replace")
 
-    fps = args.fps or (CODE_FPS if args.mode == "code" else RIDDLE_FPS)
-    options = Options(mode=args.mode, words=args.words, end_gap=args.end_gap, copy_partial=args.copy_partial,
+    options = Options(words=args.words, end_gap=args.end_gap, copy_partial=args.copy_partial,
                       no_copy=args.no_copy, no_paste=args.no_paste, paste_window=args.paste_window,
                       key_delay=args.key_delay / 1000,
                       verbose=args.verbose, model=args.model,
-                      code_step=max(1, round(fps / CODE_FPS)) if args.mode == "auto" else 1)
+                      code_step=max(1, round(args.fps / CODE_FPS)))
     engine = Engine(options, lambda kind, now, **e: print_event(kind, now, words=args.words, **e))
-    # Code mode can do without the AI, but then a riddle posing as a code goes unsolved.
-    if (args.mode != "code" or ai_installed(args.model)) and not engine.start_ai():
+    # Codes don't need the AI, so without it only riddles go unsolved.
+    if not ai_installed(args.model):
+        print("The AI isn't installed, so only codes will be read. Run setup_ai.py to solve riddles too.")
+    elif not engine.start_ai():
         return 1
 
     if args.video:
-        frames = frames_from_video(args.video, fps)
+        frames = frames_from_video(args.video, args.fps)
     else:
         region = tuple(int(v) for v in args.region.split(",")) if args.region else None
-        frames = frames_from_screen(fps, args.monitor, region, engine.screen_blocked)
+        frames = frames_from_screen(args.fps, args.monitor, region, engine.screen_blocked)
         print("Watching the screen. Ctrl+C to stop.")
     try:
         engine.run(frames)

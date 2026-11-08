@@ -4,22 +4,20 @@ optional box drawn over the part of the screen it reads.
 Usage:
     python gui.py
 
-Pasting only works while Roblox is the active window, so nothing here may take
-focus during play: the strip and the box can't be clicked or focused, and modes
-can be switched from the game with a global hotkey.
+Codes and riddles are both watched for, the whole time. Pasting only works
+while Roblox is the active window, so nothing here may take focus during play:
+the strip and the box can't be clicked or focused.
 """
-import ctypes
 import json
 import os
 import re
 import sys
 import threading
 import time
-from ctypes import wintypes
 
 import cv2
 import numpy as np
-from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFontMetrics, QGuiApplication, QIcon, QTextDocument
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFrame,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar, QPushButton,
@@ -28,7 +26,7 @@ from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QColorDial
 import chat
 import setup_ai
 from codereader import frames_from_screen
-from engine import CODE_FPS, MODES, RIDDLE_FPS, Engine, Options
+from engine import CODE_FPS, RIDDLE_FPS, Engine, Options
 from overlay import (PASSIVE_FLAGS, AreaOverlay, AreaPicker, AreaPreview, capture_area, keep_out_of_capture,
                      monitor_rects, screen_for)
 from riddle import FACTS_PATH, gpu_memory
@@ -39,20 +37,18 @@ SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 OVERLAY_WHEN = {"never": "Never", "watching": "While watching", "always": "Always"}
 HUD_CORNERS = ("bottom left", "bottom right", "bottom center", "top left", "top right")
 HUD_SIZES = {"small": 9, "normal": 11, "large": 14}
-HOTKEYS = tuple(f"F{n}" for n in range(1, 13))
 MODEL_NAMES = {"4b": "4B, best answers", "2b": "2B, lighter on VRAM"}
 DEFAULTS = {
-    "mode": "auto", "words": 3, "end_gap": 6.0, "paste": True, "paste_window": "Roblox", "key_delay_ms": 15,
-    "monitor": 1, "region": "", "hotkey": "F8", "model": DEFAULT_MODEL, "ai_autoload": True,
+    "words": 3, "end_gap": 6.0, "paste": True, "paste_window": "Roblox", "key_delay_ms": 15,
+    "monitor": 1, "region": "", "model": DEFAULT_MODEL, "ai_autoload": True,
     "hud": True, "hud_corner": "bottom left", "hud_size": "normal", "hud_opacity": 85,
     "overlay": "never", "overlay_zones": True, "overlay_reads": True, "overlay_labels": True,
     "overlay_color": "#3cc8ff", "overlay_width": 2, "overlay_opacity": 90,
     "chat_facts": True,
 }
-CHOICES = {"mode": MODES, "model": tuple(MODELS), "hotkey": HOTKEYS, "overlay": tuple(OVERLAY_WHEN),
-           "hud_corner": HUD_CORNERS, "hud_size": tuple(HUD_SIZES)}
+CHOICES = {"model": tuple(MODELS), "overlay": tuple(OVERLAY_WHEN), "hud_corner": HUD_CORNERS,
+           "hud_size": tuple(HUD_SIZES)}
 COLOR = re.compile(r"#[0-9a-fA-F]{6}")
-MODE_TIPS = {"code": "Reads codes only", "riddle": "Reads riddles only", "auto": "Both, whichever comes"}
 PAGES = ("Home", "Chat", "Overlay", "Settings")
 SUGGESTIONS = ("What rarities are there in Steal a Brainrot?", "When did Steal a Brainrot come out?",
                "Give me three tips for protecting my base")
@@ -123,11 +119,11 @@ class Hud(QWidget):
         row = QHBoxLayout(self.frame)
         row.setContentsMargins(9, 6, 13, 6)
         row.setSpacing(10)
-        self.mode = QLabel(objectName="hudMode")
+        self.kind = QLabel(objectName="hudKind", visible=False)
         self.answer = QLabel("Waiting", objectName="hudAnswer")
         self.seconds = QLabel(objectName="hudSeconds")
         self.state = QLabel(objectName="hudState")
-        for widget in (self.mode, self.answer, self.seconds, self.state):
+        for widget in (self.kind, self.answer, self.seconds, self.state):
             row.addWidget(widget)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -160,60 +156,16 @@ class Hud(QWidget):
         y = area.top() + self.MARGIN if vertical == "top" else area.bottom() - self.height() - self.MARGIN
         self.move(x, y)
 
-    def show_mode(self, mode):
-        self.mode.setText(mode.upper())
-        self.place()
-
-    def show_result(self, text, seconds="", state="", guess=False):
+    def show_result(self, text, kind="", seconds="", state="", guess=False):
+        """kind is CODE or RIDDLE, for the chip in front."""
+        self.kind.setText(kind)
+        self.kind.setVisible(bool(kind))
         self.answer.setText(text)
         self.seconds.setText(seconds)
         self.state.setText(state)
         self.state.setProperty("guess", guess)
         self.state.style().polish(self.state)
         self.place()
-
-
-class Hotkey(QObject):
-    """A global F-key, so modes can be switched while the game has focus."""
-
-    pressed = Signal()
-    failed = Signal(str)
-
-    def __init__(self):
-        super().__init__()
-        self.thread = None
-        self.thread_id = 0
-        self.ready = threading.Event()
-
-    def set_key(self, name):
-        self.stop()
-        self.ready.clear()
-        self.thread = threading.Thread(target=self._run, args=(name,), daemon=True)
-        self.thread.start()
-        self.ready.wait(1)
-
-    def stop(self):
-        if self.thread and self.thread.is_alive():
-            wm_quit = 0x0012
-            ctypes.windll.user32.PostThreadMessageW(self.thread_id, wm_quit, 0, 0)
-            self.thread.join(1)
-        self.thread = None
-
-    def _run(self, name):
-        """RegisterHotKey delivers to the thread that called it, which needs a message loop."""
-        hotkey_id, no_repeat, vk_f1, wm_hotkey = 1, 0x4000, 0x70, 0x0312
-        user32 = ctypes.windll.user32
-        self.thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
-        registered = user32.RegisterHotKey(None, hotkey_id, no_repeat, vk_f1 + int(name[1:]) - 1)
-        self.ready.set()
-        if not registered:
-            self.failed.emit(name)
-            return
-        message = wintypes.MSG()
-        while user32.GetMessageW(ctypes.byref(message), None, 0, 0) > 0:
-            if message.message == wm_hotkey:
-                self.pressed.emit()
-        user32.UnregisterHotKey(None, hotkey_id)
 
 
 class ChatInput(QPlainTextEdit):
@@ -258,20 +210,14 @@ class Panel(QMainWindow):
         self.relay.connect(self.on_event)
         self.hud = Hud()
         self.overlay = AreaOverlay()
-        self.hotkey = Hotkey()
-        self.hotkey.pressed.connect(self.next_mode)
-        self.hotkey.failed.connect(lambda key: self.log(f"Couldn't use {key} as the hotkey, another app has it."))
 
         self.build()
         self.resize(720, 780)
         self.setMinimumSize(640, 640)
-        self.select_mode(settings["mode"])
         self.check_region()
-        self.hotkey.set_key(settings["hotkey"])
         self.show_ai("off")
         self.show_watching(False)
         self.style_hud()
-        self.hud.show_mode(self.engine.next_mode)
 
         app = QGuiApplication.instance()
         app.screenAdded.connect(self.screens_changed)
@@ -282,9 +228,9 @@ class Panel(QMainWindow):
 
     def options(self):
         s = self.settings
-        # Frames always come at the riddle rate here, so a mode switch needs no
-        # restart, and the code reader only gets as many as it's tuned for.
-        return Options(mode=s["mode"], words=s["words"], end_gap=s["end_gap"], no_paste=not s["paste"],
+        # Frames come at the riddle rate, and the code reader only gets as many
+        # as it's tuned for.
+        return Options(words=s["words"], end_gap=s["end_gap"], no_paste=not s["paste"],
                        paste_window=s["paste_window"], key_delay=s["key_delay_ms"] / 1000, model=s["model"],
                        code_step=round(RIDDLE_FPS / CODE_FPS), show_reads=self.wants_reads())
 
@@ -329,21 +275,6 @@ class Panel(QMainWindow):
         row.addWidget(logo)
         row.addLayout(titles)
         row.addStretch()
-
-        modes = QHBoxLayout()
-        modes.setSpacing(0)
-        self.mode_buttons = QButtonGroup(self)
-        self.mode_buttons.setExclusive(True)
-        for i, mode in enumerate(MODES):
-            button = QPushButton(mode.capitalize(), checkable=True)
-            button.setProperty("mode", mode)
-            button.setProperty("seg", "first" if i == 0 else "last" if i == len(MODES) - 1 else "mid")
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.mode_buttons.addButton(button)
-            modes.addWidget(button)
-        self.mode_buttons.buttonClicked.connect(lambda button: self.select_mode(button.property("mode")))
-        row.addLayout(modes)
-        row.addSpacing(6)
         self.start_button = QPushButton("Start", objectName="go")
         self.start_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.start_button.setMinimumWidth(96)
@@ -665,11 +596,6 @@ class Panel(QMainWindow):
                           self.setting_row("Fact sheet", facts, "What riddle and chat answers come from. Changes "
                                                                 "apply the next time the AI loads.")])
         box.addWidget(card)
-
-        card, c = self.card("Controls")
-        self.hotkey_edit = self.bind("hotkey", self.combo((key, key) for key in HOTKEYS))
-        self.add_rows(c, [self.setting_row("Switch modes with", self.hotkey_edit, "Works while the game has focus")])
-        box.addWidget(card)
         box.addStretch()
         return page
 
@@ -718,10 +644,7 @@ class Panel(QMainWindow):
 
     def set(self, key, value):
         old, self.settings[key] = self.settings[key], value
-        if key == "hotkey" and value != old:
-            self.hotkey.set_key(value)
-            self.show_status()
-        elif key == "model" and value != old:
+        if key == "model" and value != old:
             self.engine.options.model = value
             self.engine.stop_ai()
             self.show_ai("off")
@@ -826,28 +749,6 @@ class Panel(QMainWindow):
         self.hud.set_look(s["hud_corner"], s["hud_size"], s["hud_opacity"], screen_for(area) if area else None)
         self.hud.setVisible(s["hud"])
 
-    # --- modes ----------------------------------------------------------------
-
-    def select_mode(self, mode):
-        self.settings["mode"] = mode
-        for button in self.mode_buttons.buttons():
-            button.setChecked(button.property("mode") == mode)
-        self.engine.set_mode(mode)
-        self.hud.show_mode(mode)
-        self.show_status()
-        self.save()
-
-    def next_mode(self):
-        self.select_mode(MODES[(MODES.index(self.settings["mode"]) + 1) % len(MODES)])
-        self.log(f"Mode: {self.settings['mode']}")
-
-    def show_status(self):
-        s = self.settings
-        state = "Watching" if self.watching else "Stopped"
-        self.status_label.setText(f"{state} · {s['mode'].capitalize()} mode · {s['hotkey']} to switch")
-        for button in self.mode_buttons.buttons():
-            button.setToolTip(f"{MODE_TIPS[button.property('mode')]}. {s['hotkey']} switches modes from the game.")
-
     # --- watching -------------------------------------------------------------
 
     def toggle_watching(self):
@@ -886,7 +787,7 @@ class Panel(QMainWindow):
         self.start_button.setText("Stop" if watching else "Start")
         self.start_button.setProperty("running", watching)
         self.start_button.style().polish(self.start_button)
-        self.show_status()
+        self.status_label.setText("Watching for codes and riddles" if watching else "Stopped")
         self.update_overlay()
 
     # --- the AI ---------------------------------------------------------------
@@ -1117,27 +1018,25 @@ class Panel(QMainWindow):
     def on_event(self, kind, e):
         if kind == "building":
             self.log(f"Building: {e['code']}")
-            self.hud.show_result(e["code"], state="building")
+            self.hud.show_result(e["code"], "CODE", state="building")
         elif kind == "code":
             self.show_answer(e["code"], "CODE", note_text(e["note"]))
             self.log(f"Code: {e['code']}{e['note']}")
-            self.hud.show_result(e["code"], state="pasted" if was_pasted(e["note"]) else "copied")
+            self.hud.show_result(e["code"], "CODE", state="pasted" if was_pasted(e["note"]) else "copied")
         elif kind == "done":
             self.log(f"Done: {e['code']}")
         elif kind == "riddle":
             self.log(f"Riddle: {e['text']}")
             self.detail_label.setText(e["text"])
-            self.hud.show_result("Solving", state="")
+            self.hud.show_result("Solving", "RIDDLE")
         elif kind == "answer":
             self.on_answer(e)
         elif kind == "no_answer":
             self.log(f"No answer from the model: {e['solved'].reply!r}")
-            self.hud.show_result("No answer")
+            self.hud.show_result("No answer", "RIDDLE")
         elif kind == "rows":
             if self.watching:
                 self.overlay.set_reads(e["boxes"])
-        elif kind == "mode":
-            self.log(f"Now in {e['mode']} mode")
         elif kind == "ai":
             self.show_ai(e["state"])
             self.log(f"AI: {e['state']}")
@@ -1164,7 +1063,8 @@ class Panel(QMainWindow):
         self.show_answer(solved.answer, "RIDDLE", solved.riddle, stage, guess)
         self.log(f"Answer: {solved.answer}{e['note']}  [{total:.2f} s]" + ("  (guess)" if solved.guess else ""))
         state = "same" if e["unchanged"] else "pasted" if was_pasted(e["note"]) else "copied"
-        self.hud.show_result(solved.answer, f"{total:.2f}s", "GUESS" if solved.guess else state, solved.guess)
+        self.hud.show_result(solved.answer, "RIDDLE", f"{total:.2f}s", "GUESS" if solved.guess else state,
+                             solved.guess)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -1178,7 +1078,6 @@ class Panel(QMainWindow):
         self.engine.stop()
         if self.worker:
             self.worker.join(2)
-        self.hotkey.stop()
         self.engine.stop_ai()
         self.hud.close()
         self.overlay.close()
@@ -1190,7 +1089,7 @@ def check():
     """Try every part without opening a window, to prove a packaged build has
     what it needs. A windowed exe has no console, so results go to check.txt."""
     lines = []
-    engine = Engine(Options(mode="riddle", no_copy=True), lambda kind, now, **e: lines.append(f"{kind}: {e}"))
+    engine = Engine(Options(no_copy=True), lambda kind, now, **e: lines.append(f"{kind}: {e}"))
     try:
         frame = next(frames_from_screen(RIDDLE_FPS))
         lines.append(f"screen: {frame[1].shape}")
