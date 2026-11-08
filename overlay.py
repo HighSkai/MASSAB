@@ -8,12 +8,12 @@ from that corner and the screen's scale.
 import ctypes
 
 from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QLinearGradient, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
 from codereader import ROI
 from riddle import BAND
-from theme import INK, TEXT3, font
+from theme import INK, RULE_STRONG, TEXT3, font
 
 ZONES = (("code lines", ROI, Qt.PenStyle.DashLine), ("riddle rows", BAND, Qt.PenStyle.DotLine))
 
@@ -88,20 +88,18 @@ PASSIVE_FLAGS = (Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.Win
 
 
 def tag(p, point, text, color, scale):
-    """A small rounded label with its top-left at point, drawn in frame pixels
+    """A small square label with its top-left at point, drawn in frame pixels
     (scale = frame pixels per screen pixel)."""
-    face = font("strong")
-    face.setPixelSize(max(8, round(12 * scale)))
+    face = font("mono_strong", caps=True)
+    face.setPixelSize(max(8, round(11 * scale)))
     p.setFont(face)
     metrics = p.fontMetrics()
     pad = 6 * scale
-    w, h = metrics.horizontalAdvance(text) + 2 * pad, metrics.height() + pad
+    w, h = metrics.horizontalAdvance(text.upper()) + 2 * pad, metrics.height() + pad
     box = QRectF(point.x(), point.y(), w, h)
-    rim = QColor(color)
-    rim.setAlpha(200)
-    p.setPen(QPen(rim, max(1.0, scale)))
-    p.setBrush(QColor(10, 14, 40, 225))
-    p.drawRoundedRect(box, h / 2, h / 2)
+    p.setPen(QPen(QColor(color), max(1.0, scale)))
+    p.setBrush(QColor(11, 11, 12, 232))
+    p.drawRect(box)
     p.setPen(QColor("white"))
     p.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
 
@@ -183,7 +181,7 @@ class AreaOverlay(QWidget):
             fill.setAlpha(45)
             p.setPen(QPen(self.color, line))
             p.setBrush(fill)
-            p.drawRoundedRect(box, 5 * scale, 5 * scale)
+            p.drawRect(box)
             if self.labels and text:
                 # Beside the box: overlay lines are too close together for a label above one.
                 text = text if len(text) <= 60 else text[:57] + "..."
@@ -282,7 +280,7 @@ class AreaPicker(QWidget):
             hole = QPainterPath()
             hole.addRect(rect)
             shade = shade.subtracted(hole)
-        p.fillPath(shade, QColor(3, 5, 20, 140))
+        p.fillPath(shade, QColor(0, 0, 0, 150))
 
         if self.current is not None and rect is None:
             p.setPen(QPen(QColor(255, 255, 255, 160), 1.5, Qt.PenStyle.DashLine))
@@ -295,17 +293,14 @@ class AreaPicker(QWidget):
             _, _, w, h = self.native_selection()
             tag(p, rect.bottomRight() + QPointF(-110, 8), f"{w} × {h}", QColor("#3cc8ff"), 1)
 
-        # Instructions on a glass capsule near the top.
+        # Instructions on a black card near the top.
         text = "Drag over the area MASSAB should read. Esc cancels."
-        p.setFont(font("text", 11))
-        width = p.fontMetrics().horizontalAdvance(text) + 48
-        card = QRectF((self.width() - width) / 2, 40, width, 44)
-        fill = QLinearGradient(card.topLeft(), card.bottomLeft())
-        fill.setColorAt(0, QColor(30, 38, 90, 240))
-        fill.setColorAt(1, QColor(12, 16, 46, 240))
-        p.setPen(QPen(QColor(255, 255, 255, 60), 1))
-        p.setBrush(fill)
-        p.drawRoundedRect(card, 22, 22)
+        p.setFont(font("mono_strong", 9, caps=True))
+        width = p.fontMetrics().horizontalAdvance(text.upper()) + 48
+        card = QRectF((self.width() - width) / 2, 40, width, 42)
+        p.setPen(QPen(QColor(255, 255, 255, 70), 1))
+        p.setBrush(QColor(11, 11, 12, 245))
+        p.drawRect(card.adjusted(0.5, 0.5, -0.5, -0.5))
         p.setPen(QColor(INK))
         p.drawText(card, Qt.AlignmentFlag.AlignCenter, text)
 
@@ -333,26 +328,20 @@ class AreaPreview(QWidget):
         sw, sh = mw * scale, mh * scale
         screen = QRectF((self.width() - sw) / 2, (self.height() - sh) / 2, sw, sh)
 
-        # The monitor as a dark glass pane with a faint grid, so the area reads as part of a screen.
+        # The monitor as a flat black pane with a faint grid, so the area reads as part of a screen.
         pane = QPainterPath()
-        pane.addRoundedRect(screen, 12, 12)
-        fill = QLinearGradient(screen.topLeft(), screen.bottomRight())
-        fill.setColorAt(0, QColor(30, 40, 96, 200))
-        fill.setColorAt(1, QColor(6, 9, 30, 220))
-        p.fillPath(pane, fill)
-        p.save()
-        p.setClipPath(pane)
-        p.setPen(QPen(QColor(255, 255, 255, 12), 1))
+        pane.addRect(screen)
+        p.fillPath(pane, QColor("#0e0e0f"))
+        p.setPen(QPen(QColor(255, 255, 255, 14), 1))
         for i in range(1, 8):
-            x = screen.left() + screen.width() * i / 8
+            x = round(screen.left() + screen.width() * i / 8) + 0.5
             p.drawLine(QPointF(x, screen.top()), QPointF(x, screen.bottom()))
         for i in range(1, 5):
-            y = screen.top() + screen.height() * i / 5
+            y = round(screen.top() + screen.height() * i / 5) + 0.5
             p.drawLine(QPointF(screen.left(), y), QPointF(screen.right(), y))
-        p.restore()
-        p.setPen(QPen(QColor(255, 255, 255, 46), 1))
+        p.setPen(QPen(QColor(RULE_STRONG), 1))
         p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(screen.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
+        p.drawRect(screen.adjusted(0.5, 0.5, -0.5, -0.5))
 
         if self.monitor and self.area:
             ax, ay, aw, ah = self.area
@@ -376,7 +365,7 @@ class AreaPreview(QWidget):
                 p.restore()
         if self.caption:
             p.setPen(QColor(INK if self.area else TEXT3))
-            p.setFont(font("text", 8.5))
+            p.setFont(font("mono", 7.5, caps=True))
             p.drawText(screen.adjusted(10, 6, -10, -8), Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
                        self.caption)
 

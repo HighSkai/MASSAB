@@ -16,7 +16,7 @@ rapidocr_dir = importlib.util.find_spec("rapidocr_onnxruntime").submodule_search
 a = Analysis(
     ["gui.py"],
     pathex=[rapidocr_dir],
-    datas=[("prompts", "prompts"), ("data", "data"), *collect_data_files("rapidocr_onnxruntime")],
+    datas=[("prompts", "prompts"), ("data", "data"), ("fonts", "fonts"), *collect_data_files("rapidocr_onnxruntime")],
     binaries=collect_dynamic_libs("onnxruntime"),
     hiddenimports=["mss", "mss.windows", "ch_ppocr_v3_det", "ch_ppocr_v3_rec", "ch_ppocr_v2_cls"],
     excludes=["tkinter", "matplotlib", "pytest", "IPython"],

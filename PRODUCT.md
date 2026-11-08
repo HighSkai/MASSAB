@@ -52,7 +52,8 @@ Success is the right answer sitting in the Codes box before other viewers have t
 - `data/sab_facts.md`: the researched fact sheet. Every line carries a `[source: url]`, and there's a `## Needs review` section and a `## Answers Sammy confirmed` section.
 - `bench_riddle.py` measures the time from text appearing to the paste finishing. It's the only basis for any speed claim.
 - `testdata/` holds local test recordings cut from other people's videos. They're gitignored, and they must never be published or used as product imagery.
-- The logo is drawn in code (`theme.mark`): a blue-violet glass tile with the reading box's viewfinder on it. There's no logo image file.
+- There's no logo. The window shows the title MASSAB in Big Shoulders Display, and the taskbar icon is just its letter M, drawn in code (`theme.window_icon`). There's no logo image file.
+- The bundled fonts, Big Shoulders Display and Martian Mono, are in `fonts\` under the SIL Open Font License, with their licenses.
 - There are no screenshots, testimonials, download counts or user reports. Don't invent any.
 
 ## Product Principles

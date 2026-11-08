@@ -55,7 +55,7 @@ A riddle needs an intro, the same way a code does, so everyday chat is left alon
 
 The riddle can be on the same line as either kind. Lines about one that's over, like "that was a bad riddle", "the code was X" or "the answer was X", are ignored.
 
-The window has four pages, in the sidebar on the left. The AI's state and how much VRAM is in use are at the bottom of the sidebar.
+The window has four pages, in the sidebar on the left. Ctrl+1 to Ctrl+4 switch between them. The AI's state and how much VRAM is in use are at the bottom of the sidebar.
 
 | Page | What's on it |
 |---|---|
@@ -73,6 +73,8 @@ MASSAB reads the whole monitor unless you give it an area. On the Overlay page, 
 The **On-screen box** draws that area over the game: never, while watching, or always. It can also mark the two zones, and highlight each line of text as it's read, labeled with what OCR made of it. That's the quickest way to check MASSAB is looking in the right place. The box can't be clicked and is hidden from screen capture, so MASSAB never reads its own labels. Pick its color from the swatches if it's hard to see over your game.
 
 Settings that only take effect when watching starts, like the area and pasting, are greyed out until you press Stop.
+
+Pages and controls move on springs. **Animations** in Settings turns them off, or makes them follow Windows' own Animation effects setting.
 
 ### Chat
 
@@ -147,7 +149,7 @@ Run it while you're in a game, because Roblox competes with the model for the GP
 .venv\Scripts\python -m PyInstaller --noconfirm MASSAB.spec
 ```
 
-The app is the folder `dist\MASSAB`. It keeps its own `data\` and `prompts\`, and needs `bin\` and `models\` inside it. Its **Install AI** button downloads them.
+The app is the folder `dist\MASSAB`. It keeps its own `data\`, `prompts\` and `fonts\`, and needs `bin\` and `models\` inside it. Its **Install AI** button downloads them.
 
 `MASSAB.exe --check` tries screen capture, OCR and the model without opening a window, and writes the result to `check.txt`.
 
@@ -186,3 +188,7 @@ Riddles:
 - Up to 2 seconds of short chatter right after a short riddle can join it.
 - A short riddle line (5 words or fewer) that uses a hint word like `number`, or mentions `code`, is taken for a hint or intro.
 - Row reading needs the overlay centered in what's being watched. For a video in a browser, set the area to the video. Editing zooms in recordings can still cut rows short, which doesn't happen live.
+
+## Fonts
+
+`fonts\` holds Big Shoulders Display and Martian Mono, both under the SIL Open Font License. Their licenses are next to them. Body text uses Windows' Segoe UI.

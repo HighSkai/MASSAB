@@ -1,391 +1,383 @@
 ---
 name: MASSAB
-description: A floating glass control window over a deep indigo sky, built to read Sammy's codes and riddles and paste the answer.
+description: A black instrument sheet for reading Sammy's codes and riddles and pasting the answer, with one light slab for the last answer.
 colors:
-  accent-blue: "#4d7cff"
-  accent-light: "#7c9dff"
-  gradient-bright: "#6a93ff"
-  gradient-deep: "#3a5ef0"
-  chip-ink-blue: "#c9d6ff"
-  stage-violet: "#8a6bff"
-  stage-cyan: "#3cc8ff"
-  signal-green: "#2fd38a"
-  signal-amber: "#ffb547"
-  signal-red: "#ff5a6e"
-  strip-green: "#4ee6a0"
-  strip-amber: "#ffc35c"
-  chip-ink-green: "#93f0c4"
-  chip-ink-amber: "#ffd08a"
-  chip-ink-red: "#ffc6cd"
-  stop-ink: "#ffd9de"
-  ink: "#f3f5ff"
-  ink-secondary: "#aab3d8"
-  ink-tertiary: "#858fb6"
-  log-ink: "#cdd3f0"
-  dim-slate: "#5d6690"
-  ground: "#0b1140"
-  popup: "#151b48"
-  backdrop-top: "#0d1546"
-  backdrop-mid: "#080c2a"
-  backdrop-floor: "#04061a"
-  glow-blue: "#2f5bff"
-  glow-violet: "#7b3cff"
-  glow-azure: "#0090ff"
-  glass-panel: "rgba(12, 17, 50, 0.55)"
-  glass-rail: "rgba(14, 19, 56, 0.59)"
-  glass-hero: "rgba(14, 20, 60, 0.55)"
-  well: "rgba(0, 0, 0, 0.25)"
-  strip-glass-top: "#1c2456"
-  strip-glass-floor: "#080b22"
-  tag-glass: "rgba(10, 14, 40, 0.88)"
+  ground: "#0b0b0c"
+  panel: "#131314"
+  raised: "#1b1b1d"
+  field: "#0e0e0f"
+  popup: "#151516"
+  rule: "#232326"
+  rule-strong: "#3a3a40"
+  rule-hover: "#55555c"
+  ink: "#ededee"
+  white: "#ffffff"
+  ink-pressed: "#c9c9cd"
+  text-secondary: "#9b9ba3"
+  text-tertiary: "#81818a"
+  ice: "#a9c8e0"
+  slab: "#e4ecf2"
+  slab-ink-secondary: "#46525d"
+  slab-ink-tertiary: "#7a8794"
+  slab-track: "#cdd7df"
+  stage-read: "#8a99a6"
+  stage-ai: "#3f6482"
+  mint: "#5ee0a0"
+  amber: "#f5b041"
+  amber-ink: "#1a1205"
+  coral: "#ff5c5c"
+  coral-ink: "#ffb4ac"
+  coral-wash: "rgba(255, 92, 92, 0.08)"
+  overlay-cyan: "#3cc8ff"
+  strip-ground: "rgba(11, 11, 12, 0.85)"
+  tag-ground: "rgba(11, 11, 12, 0.91)"
 typography:
   display:
-    fontFamily: "Segoe UI Variable Display Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
-    fontSize: "30pt"
-    fontWeight: 600
-    lineHeight: 1.1
-  headline:
-    fontFamily: "Segoe UI Variable Display Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
-    fontSize: "20pt"
-    fontWeight: 600
-  title-large:
-    fontFamily: "Segoe UI Variable Display Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
-    fontSize: "14pt"
-    fontWeight: 600
+    fontFamily: "Big Shoulders Display, Segoe UI, sans-serif"
+    fontSize: "44pt"
+    fontWeight: 900
   brand:
-    fontFamily: "Segoe UI Variable Display Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
-    fontSize: "13pt"
-    fontWeight: 600
+    fontFamily: "Big Shoulders Display, Segoe UI, sans-serif"
+    fontSize: "23pt"
+    fontWeight: 900
+  headline:
+    fontFamily: "Big Shoulders Display, Segoe UI, sans-serif"
+    fontSize: "28pt"
+    fontWeight: 800
   title:
-    fontFamily: "Segoe UI Variable Text Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
-    fontSize: "11pt"
-    fontWeight: 600
+    fontFamily: "Big Shoulders Display, Segoe UI, sans-serif"
+    fontSize: "24pt"
+    fontWeight: 800
+  title-empty:
+    fontFamily: "Big Shoulders Display, Segoe UI, sans-serif"
+    fontSize: "22pt"
+    fontWeight: 800
   body:
     fontFamily: "Segoe UI Variable Text, Segoe UI, sans-serif"
     fontSize: "10pt"
     fontWeight: 400
-  label:
-    fontFamily: "Segoe UI Variable Text Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
-    fontSize: "9.5pt"
-    fontWeight: 600
-  caption:
+  body-hint:
     fontFamily: "Segoe UI Variable Text, Segoe UI, sans-serif"
     fontSize: "9pt"
     fontWeight: 400
-  chip:
-    fontFamily: "Segoe UI Variable Text Semibold, Segoe UI Semibold, Segoe UI, sans-serif"
+  label:
+    fontFamily: "Martian Mono, Cascadia Mono, Consolas, monospace"
     fontSize: "8.5pt"
-    fontWeight: 600
-  mono:
-    fontFamily: "Cascadia Mono, Consolas, monospace"
+    fontWeight: 500
+  label-nav:
+    fontFamily: "Martian Mono, Cascadia Mono, Consolas, monospace"
     fontSize: "9pt"
+    fontWeight: 500
+  label-small:
+    fontFamily: "Martian Mono, Cascadia Mono, Consolas, monospace"
+    fontSize: "8pt"
+    fontWeight: 500
+  data:
+    fontFamily: "Martian Mono, Cascadia Mono, Consolas, monospace"
+    fontSize: "8.5pt"
+    fontWeight: 400
+  data-small:
+    fontFamily: "Martian Mono, Cascadia Mono, Consolas, monospace"
+    fontSize: "8pt"
     fontWeight: 400
 rounded:
-  bar: "2px"
-  menu-item: "6px"
-  field: "11px"
-  control: "14px"
-  button: "16px"
-  capsule: "18px"
-  panel: "22px"
-  rail: "24px"
+  none: "0px"
+  hairline: "1px"
+  sm: "2px"
 spacing:
-  hair: "2px"
-  xs: "4px"
+  2xs: "4px"
+  xs: "6px"
   sm: "8px"
-  md: "10px"
+  md: "12px"
   lg: "16px"
   panel: "18px"
-  xl: "22px"
-  brand-gap: "26px"
+  slab: "22px"
+  page: "24px"
 components:
-  button:
-    backgroundColor: "rgba(255, 255, 255, 0.08)"
-    textColor: "{colors.ink}"
-    typography: "{typography.label}"
-    rounded: "{rounded.button}"
-    padding: "7px 16px"
-  button-hover:
-    backgroundColor: "rgba(255, 255, 255, 0.14)"
   button-primary:
-    backgroundColor: "{colors.gradient-bright}"
-    textColor: "#ffffff"
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.ground}"
     typography: "{typography.label}"
-    rounded: "{rounded.button}"
-    padding: "7px 16px"
+    rounded: "{rounded.sm}"
+    padding: "8px 14px"
   button-primary-hover:
-    backgroundColor: "#82a5ff"
-  button-small:
-    backgroundColor: "rgba(255, 255, 255, 0.08)"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "5px 13px"
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.ground}"
+  button-primary-pressed:
+    backgroundColor: "{colors.ink-pressed}"
+    textColor: "{colors.ground}"
   button-start:
-    backgroundColor: "{colors.gradient-bright}"
-    textColor: "#ffffff"
-    rounded: "{rounded.capsule}"
-    padding: "0 28px"
-    height: "36px"
-  button-stop:
-    backgroundColor: "rgba(255, 90, 110, 0.18)"
-    textColor: "{colors.stop-ink}"
-    rounded: "{rounded.capsule}"
-    padding: "0 28px"
-    height: "36px"
-  nav-item:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.ground}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    padding: "0 22px"
+    height: "34px"
+  button-start-running:
     backgroundColor: "transparent"
-    textColor: "{colors.ink-secondary}"
-    typography: "{typography.body}"
-    rounded: "{rounded.control}"
-    padding: "0 14px"
-    height: "40px"
-  nav-item-active:
-    backgroundColor: "rgba(106, 147, 255, 0.31)"
+    textColor: "{colors.coral}"
+  button-outline:
+    backgroundColor: "transparent"
     textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    padding: "8px 14px"
+  button-outline-hover:
+    backgroundColor: "{colors.raised}"
+    textColor: "{colors.ink}"
+  button-small:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.label-small}"
+    rounded: "{rounded.sm}"
+    padding: "5px 10px"
   input:
-    backgroundColor: "{colors.well}"
+    backgroundColor: "{colors.field}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.field}"
-    padding: "6px 10px"
-  input-focus:
-    backgroundColor: "rgba(0, 0, 0, 0.33)"
-  chip-kind:
-    backgroundColor: "rgba(77, 124, 255, 0.18)"
-    textColor: "{colors.chip-ink-blue}"
-    typography: "{typography.chip}"
-    rounded: "{rounded.field}"
-    padding: "0 10px"
-    height: "22px"
-  chip-pasted:
-    backgroundColor: "rgba(47, 211, 138, 0.13)"
-    textColor: "{colors.chip-ink-green}"
-    rounded: "{rounded.field}"
-    height: "22px"
-  chip-guess:
-    backgroundColor: "rgba(255, 181, 71, 0.13)"
-    textColor: "{colors.chip-ink-amber}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.field}"
-    padding: "0 11px"
-    height: "22px"
-  glass-panel:
-    backgroundColor: "{colors.glass-panel}"
+    typography: "{typography.data}"
+    rounded: "{rounded.sm}"
+    padding: "7px 10px"
+  panel:
+    backgroundColor: "{colors.panel}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.panel}"
+    rounded: "{rounded.sm}"
     padding: "18px"
-  glass-rail:
-    backgroundColor: "{colors.glass-rail}"
-    rounded: "{rounded.rail}"
-    padding: "12px"
-    width: "228px"
+  answer-slab:
+    backgroundColor: "{colors.slab}"
+    textColor: "{colors.ground}"
+    rounded: "{rounded.sm}"
+    padding: "22px"
+  chip:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.label-small}"
+    rounded: "{rounded.sm}"
+    padding: "0 8px"
+    height: "20px"
+  chip-pasted:
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.slab}"
+  chip-guess:
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.amber-ink}"
+    typography: "{typography.label-small}"
+    rounded: "{rounded.sm}"
+    padding: "0 8px"
+    height: "20px"
+  nav-tab:
+    backgroundColor: "transparent"
+    textColor: "{colors.text-secondary}"
+    typography: "{typography.label-nav}"
+    padding: "0 14px"
+    height: "38px"
+  nav-tab-active:
+    backgroundColor: "{colors.raised}"
+    textColor: "{colors.ink}"
+  toggle:
+    backgroundColor: "{colors.panel}"
+    rounded: "{rounded.none}"
+    size: "44px 26px"
+  toggle-on:
+    backgroundColor: "{colors.ink}"
+  segmented:
+    backgroundColor: "{colors.field}"
+    textColor: "{colors.text-secondary}"
+    typography: "{typography.label-small}"
+    rounded: "{rounded.none}"
+    height: "30px"
+  segmented-selected:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.ground}"
   bubble-user:
-    backgroundColor: "{colors.gradient-bright}"
-    textColor: "#ffffff"
-    rounded: "{rounded.capsule}"
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.ground}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
     padding: "10px 15px"
   bubble-ai:
-    backgroundColor: "rgba(255, 255, 255, 0.07)"
+    backgroundColor: "{colors.raised}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.capsule}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
     padding: "10px 15px"
-  strip:
-    backgroundColor: "{colors.strip-glass-top}"
-    textColor: "#ffffff"
+  game-strip:
+    backgroundColor: "{colors.strip-ground}"
+    textColor: "{colors.white}"
+    rounded: "{rounded.sm}"
+    padding: "0 14px 0 7px"
     height: "36px"
-    padding: "6px 16px 6px 8px"
+  box-tag:
+    backgroundColor: "{colors.tag-ground}"
+    textColor: "{colors.white}"
+    rounded: "{rounded.none}"
+    padding: "3px 6px"
 ---
 
 # Design System: MASSAB
 
 ## Overview
 
-**Creative North Star: "The Floating Glass Console"** (the documenter's name for it, drawn from the direction contract's thesis; the user didn't name one.)
+**Creative North Star: "The Black Instrument Sheet"** (taken from the direction contract's thesis)
 
-MASSAB is one glass control window floating over a deep indigo sky. A dark navy-to-black backdrop carries three large soft glows (blue top-left, violet top-right, azure from below) and a faint grain. Frosted navy glass panels float on it, each with a 1px rim lit from the top-left and a soft dark shadow. A frosted side rail holds four icon tabs, and a glass pill slides between them. Pages cross-fade inside the one shell rather than swapping, so the window reads as a single console and not as a settings form. The look pairs the Vision UI dashboard with Apple Vision Pro (visionOS) glass. The user pinned that direction.
+MASSAB is laid out like a black instrument sheet. Flat near-black planes are separated by 1px rules. Names, page titles and the answer are set in tall condensed poster type, and every label, number and log line is in crisp monospace. Nothing glows and nothing is glass. There is no light source, so depth comes only from value steps and lines. The one bright object is the light slab holding the last answer, and that's where the eye goes first.
 
-The last answer is the brightest object on screen. It is the only 30pt type, and it sits in the hero panel, which catches extra accent light. A proportional read → AI → paste bar sits under it. Everything else is quieter: lavender-gray secondary text, capsule controls, and grouped rows split by hairlines. The density is calm. Setup happens here between streams, while the race itself happens in the game, watched through the strip.
+The window is dense but calm, a setup and review console. The player glances at it, presses START, and goes back to the game. Everything drawn over the game follows the same rules: dark, square and white-lettered, and it never gets in the way. Motion is springy and brief, in the style Apple describes: springs set by duration and bounce that keep their velocity when interrupted, that move in the direction of the page you're going to, and that can be turned off.
 
-Anything drawn over the game uses the same dark glass at a smaller scale, with white text. The strip and the box can't be clicked, never take focus, and are hidden from screen capture. The light Frutiger Aero look (a light sky, light glass cards and gloss buttons) is retired, and nothing from it carries forward.
+This replaces the earlier dark-glass console. Glows, gradients, glass panels and rounded capsules are confirmed rejections.
 
 **Key Characteristics:**
-- Deep indigo backdrop with large soft color glows and a 2.8% grain.
-- Navy-tinted glass panels with a top-left-lit 1px rim and a painted soft shadow.
-- One electric-blue accent for selection and primary actions, and three signal colors for state.
-- Capsule controls throughout, with painted switches, segmented pills and a sliding rail pill.
-- Exponential ease-out motion at 220–260ms, with one long 700ms moment (the answer bar growing).
-- Over-game surfaces are dark glass with white text, and they are passive.
+- Flat near-black planes stepped by value (ground, panel, raised), cut by 1px rules.
+- Square geometry: 2px corners on framed controls, true squares on painted controls.
+- Big Shoulders Display for names and the answer, Martian Mono in capitals for every label and number, and Segoe UI Variable for sentences.
+- One light slab per screen, and it holds the last answer.
+- Color is a signal, never decoration: mint, amber and coral each carry one meaning.
+- Spring motion with bounce at or under 0.35, which snaps into place when motion is off.
 
 ## Colors
 
-A night-sky palette: navy and near-black grounds, white-alpha glass, one electric blue, and a strict green / amber / red signal set.
+A near-monochrome graphite palette with one ice-white slab, plus three signal colors that each mean exactly one thing.
 
 ### Primary
-- **Electric Blue** (accent-blue): the one accent. It marks selection (menu and list highlights, text selection, the Segmented pill, the rail pill's tint, the kind chip), progress and primary actions. On buttons, the toggle's on state and the user's chat bubbles, it's applied as a diagonal gradient from **Bright Periwinkle** (gradient-bright) to **Deep Cobalt** (gradient-deep).
-- **Periwinkle Light** (accent-light): focus rings and borders on every control, and links.
-- **Ice Blue Ink** (chip-ink-blue): text on blue-tinted chips.
+- **Instrument Ink** (#ededee): the main text color, and the fill of the primary action block (START, Send, Load AI, Pick on screen) with ground-black text on it. Hover lifts it to pure white and pressing settles it to Pressed Ink (#c9c9cd). It also fills the user's chat bubbles, the segmented control's moving block, a toggle's on state, slider fills, selection highlights and progress chunks.
+- **Ice Slab** (#e4ecf2): the answer slab, the only light surface on screen. Text on it is ground black, with Slab Secondary (#46525d) for the riddle line and Slab Tertiary (#7a8794) for the empty "No answer yet" state.
 
 ### Secondary
-- **Stage Cyan** (stage-cyan): the "Read" stage of the answer bar, the start of the VRAM bar's gradient, and the on-screen box's default color.
-- **Stage Violet** (stage-violet): the "AI" stage of the answer bar.
+- **Signal Mint** (#5ee0a0): live or pasted. The status light while watching, AI ready, and PASTED on the game strip.
+- **Signal Amber** (#f5b041): guess or loading. The GUESS chip (a solid amber block with Amber Ink (#1a1205) lettering), the strip's GUESS flag, and the AI loading or downloading light.
+- **Signal Coral** (#ff5c5c): stop, error or low VRAM. The running START button turns into a coral-outlined STOP, and coral also marks invalid fields (with an 8% coral wash), error chat bubbles (Coral Ink (#ffb4ac) text) and the VRAM bar when it runs low.
 
-### Tertiary (signals)
-- **Live Green** (signal-green): live and pasted. Used for the status light while watching, "AI ready", the pasted chip's tint and the "Paste" stage of the answer bar.
-- **Guess Amber** (signal-amber): guess and loading. Used for the guess chip, the lock note, and the AI light while loading or downloading.
-- **Stop Red** (signal-red): stop, error and low VRAM. Used for the Start button while running (as Stop), invalid fields, error bubbles and the VRAM bar when free memory is under 500 MB.
-- **Strip Green / Strip Amber** (strip-green, strip-amber): brighter versions of the signals for the strip's "pasted" and "guess" words, so they hold up over any game.
-- **Chip inks** (chip-ink-green, chip-ink-amber, chip-ink-red, stop-ink): pale tints of each signal, used for text on that signal's translucent fill.
+### Tertiary
+- **Focus Ice** (#a9c8e0): a 1px focus ring on buttons, fields, toggles, segmented controls, swatches and rail tabs. Nothing else.
+- **Timing Stages** (#8a99a6 read, #3f6482 AI, ground black for paste, on a #cdd7df track): the three segments of the timing bar on the answer slab. The AI stage is the references' pale chart blue, darkened so it reads on the light slab.
+- **Overlay Cyan** (#3cc8ff): the default outline color for the on-screen box and the color of the area picker's selection. The box's color can be changed with five swatches chosen to show up over any game (#3cc8ff, #3ee39a, #ffd23f, #ff5fd2, #ffffff). These are a user setting, not part of the window's palette.
 
 ### Neutral
-- **Moon White** (ink): primary text on every surface.
-- **Lavender Gray** (ink-secondary): secondary text, unselected tabs and segments, chevrons, and answer-bar legends.
-- **Dusk Gray** (ink-tertiary): hints, placeholders, empty states and the empty answer.
-- **Log Ink** (log-ink): monospace log text.
-- **Dim Slate** (dim-slate): the off/gray status light and disabled icons.
-- **Midnight Ground** (ground): the window palette base and the Windows title bar (set through DWM to match the top of the backdrop).
-- **Popup Navy** (popup): menus, drop-down lists and tooltips. These are solid because Qt can't blur them.
-- **Backdrop** (backdrop-top → backdrop-mid → backdrop-floor): the diagonal base gradient. **Glow Blue**, **Glow Violet** and **Glow Azure** are the three radial lights painted over it.
-- **Glass** (glass-panel, glass-rail, glass-hero): the navy tint of each glass kind, before its white sheen.
-- **Well** (well): the black-alpha inset behind inputs. The log and the Segmented track use the same kind of well.
-- **Over-game glass** (strip-glass-top → strip-glass-floor, tag-glass): the strip's vertical gradient and the box tags' fill.
+- **Ground** (#0b0b0c): the window, the rail and the title bar. It is also the ink on the slab and on Instrument Ink blocks.
+- **Panel** (#131314): ruled panels, the toggle track.
+- **Raised** (#1b1b1d): hover fills, the rail's selection block, the AI's chat bubbles.
+- **Field** (#0e0e0f): text fields, spin boxes, drop-downs, the segmented track, the reading-area preview pane.
+- **Popup** (#151516): menus, drop-down lists and tooltips.
+- **Rule** (#232326): every 1px divider, panel border and disabled outline.
+- **Strong Rule** (#3a3a40): control outlines, chips, the slider groove and the empty toggle.
+- **Hover Rule** (#55555c): the outline on hover. It is also the disabled text color and the "off" status light.
+- **Secondary Text** (#9b9ba3) and **Tertiary Text** (#81818a): panel titles, status text and inactive tabs, then hints, placeholders and shortcut numbers.
 
 ### Named Rules
-**The One Blue Rule.** Electric Blue marks selection and primary actions, and nothing else. It never signals state.
+**The One Slab Rule.** The last answer sits on the only light surface on screen. No other panel, banner or card may be light.
 
-**The Signal Trio Rule.** Green means live or pasted, amber means guess or loading, and red means stop, error or low VRAM. These colors are never decorative, and no fourth state color exists.
+**The Signal Rule.** Mint means live or pasted, amber means guess or loading, coral means stop, error or low VRAM. A signal color is never decoration, and a meaning is never shown in any other color.
 
-**The Amber Guess Rule.** A guess is always flagged in amber: a "Guess: …" chip on Home and a "guess" word on the strip. It stays visible beside "pasted", because a pasted guess is still a guess.
+**The Ice Is Focus Rule.** Focus Ice draws focus rings and nothing else: no fills, no text, no selected states.
 
 ## Typography
 
-**Display Font:** Segoe UI Variable Display Semibold (with Segoe UI Semibold, then Segoe UI 600)
-**Body Font:** Segoe UI Variable Text (with Segoe UI)
-**Label/Mono Font:** Segoe UI Variable Text Semibold for labels. Cascadia Mono (with Consolas) for the log.
+**Display Font:** Big Shoulders Display, a bundled variable font used at weights 900 and 800 (falls back to Segoe UI 700)
+**Body Font:** Segoe UI Variable Text (falls back to Segoe UI)
+**Label/Mono Font:** Martian Mono, a bundled variable font used at weights 400 and 500 (falls back to Cascadia Mono, then Consolas)
 
-**Character:** Windows 11's own variable face, so the console feels native to the machine it runs on. The optical Display cut is reserved for titles and the answer, and Text Semibold carries labels, buttons and chips.
+**Character:** Tall condensed poster capitals do the shouting and a wide technical monospace does all the reading of values. They work like the stencil and the readout of the same instrument. Sentences stay in a quiet Windows sans so that explanations read as plain speech.
+
+Sizes are Qt points.
 
 ### Hierarchy
-- **Display** (Display Semibold, 30pt): the last answer only. It shrinks one point at a time down to 11pt to fit, rather than being cut off. When empty it shows in Dusk Gray.
-- **Headline** (Display Semibold, 20pt): the page title in the header.
-- **Title Large** (Display Semibold, 14pt): the answer's total time and the chat's empty-state title.
-- **Brand** (Display Semibold, 13pt): the "MASSAB" wordmark beside the mark in the rail.
-- **Title** (Text Semibold, 11pt): panel titles ("Codes", "Activity", "Reading area").
-- **Body** (Text, 10pt): the app default, used for setting names, chat text and secondary lines. Nav tabs use Text Semibold at 10pt.
-- **Label** (Text Semibold, 9.5pt): buttons, the status capsule text and Segmented choices. The Start button uses 10.5pt.
-- **Caption** (Text, 9pt): hints in Dusk Gray, the VRAM label and the answer-bar legend.
-- **Chip** (Text Semibold, 8.5pt): kind and paste chips. The guess and lock-note chips use 9pt.
-- **Mono** (Cascadia Mono, 9pt): the activity log only.
+- **Display** (900, 44pt, shrinking a point at a time to 14pt to fit the slab): the last answer, and nothing else. The game strip sets the answer in the same face at 1.5× its text size.
+- **Brand** (900, 23pt): the text title MASSAB in the rail. It's smaller than the page title so the page leads. The taskbar icon is its letter M in the same face.
+- **Headline** (800, 28pt, uppercase): the page title in the header.
+- **Title** (800, 24pt): the answer's total time ("0.94 s"). The empty Chat title uses 22pt, uppercase.
+- **Body** (400, 10pt): setting names, riddle text, chat messages, explanations. **Hint** is 9pt in Tertiary Text.
+- **Label** (500, 8.5pt, uppercase): panel titles, the status line, AI state and button text. Rail tabs use 9pt, and chips, small buttons and segmented cells use 8pt.
+- **Data** (400, 8.5pt): field values, drop-downs and the activity log. Timing captions and shortcut numbers use 8pt, and the preview caption 7.5pt.
 
 ### Named Rules
-**The Loudest Answer Rule.** Only the answer is set at display size. Nothing else on any page competes with it.
+**The Mono Readout Rule.** Every label, number, button, chip and log line is in Martian Mono, in capitals where it labels something. Big Shoulders is reserved for the title, page titles, the total and the answer.
 
-**The Mono Is For Machines Rule.** Monospace appears only in the log, where it shows raw reads and timestamps.
+**The Lowercase Unit Rule.** Units stay lowercase inside capitalized mono text: "READ 0.42 s", "0.94 s", "15 ms". Capitalize the label, never the unit.
 
 ## Layout
 
-The window opens at 980 × 640, with a minimum of 880 × 580. A Backdrop fills it, with an 8px outer margin. The left column is the glass rail (228px wide; the contract planned 208px, and the build's 228px is what's recorded). It holds the mark and wordmark, then a 26px gap, the four nav tabs 4px apart, a stretch, and the AI light, AI button and VRAM bar pinned to the bottom. The main column holds a header row (the page title on the left, and the status capsule and Start button on the right, both 36px tall) above a stacked page area.
+The first viewport is 980 × 640, and the window's minimum is 900 × 600. A fixed 200px rail on the left is in the ground color with a 1px rule down its right edge. It holds the title at the top, four tabs with their Ctrl+1–4 numbers, and the AI state, the Load/Unload button and the VRAM bar at the bottom. The main column has a header (page title on the left, then the mono status with its square light and the START block on the right, with 24px side insets), a 1px rule, and then the page body at 24px side and 20px top and bottom insets.
 
-Every glass panel reserves 8px around its body for the painted shadow (PAD) and pads its contents 18px inside. Layout spacing defaults to 10px. Setting rows are a label on the left and a control on the right, with 9px above and below, a 16px gap, and hairline separators between rows. Fields are 150px wide (180px on the Overlay page). Every page keeps a 10px scroll gutter, and the vertical scroll bar is always present but invisible when there's nothing to scroll, so panels line up from tab to tab and never jump sideways.
+Pages are vertical stacks of panels with 12px gaps. Two panels sit side by side in columns 12px apart, and they stack when the content is narrower than 720px. Every page keeps an 8px gutter for a scroll bar, so panels line up the same from tab to tab, and the scroll bar is invisible when there's nothing to scroll. Panels have 18px insets. A panel's mono title is followed by an optional hint (6px below) and then the content (8px below). Setting rows have a label on the left and a control on the right, 10px of vertical padding, 16px between label and control, and 1px rules between rows. The answer slab uses 22px insets.
 
-Responsive behavior: panel pairs sit side by side in a Columns row and stack vertically below 700px of width. Home is the hero answer panel above an Activity panel that fills the rest. Chat is one panel (toggle row, scrolling bubbles, input row). Overlay and Settings scroll.
-
-**The Steady Gutter Rule.** Every page reserves the same 10px scroll gutter whether or not it scrolls, so panel edges never shift between tabs.
+The spacing rhythm is 4 / 6 / 8 / 12 / 16 / 18 / 22 / 24px. 12px is the default gap between blocks.
 
 ## Elevation & Depth
 
-Depth is painted, not styled. Qt style sheets can't blur, cast shadows or animate, so theme.py paints the backdrop, the shadows, the glass sheen and the rims with QPainter. There are three layers: the glowing backdrop, the floating glass panels (each with a soft dark shadow and a lit rim), and the popups, which are solid Popup Navy with a white-alpha border. Glass doesn't actually blur what's behind it. The frost effect comes from the navy tint (55–59% opacity) plus a white vertical sheen (from 8.5–10% at the top down to 3.5–4% at the bottom).
-
-### Shadow Vocabulary
-- **Glass drop** (`box-shadow: 0 3px 8px rgba(0, 0, 0, 0.43)`): under every glass panel and the rail. It's a Gaussian blur (sigma 4px) of the rounded body, dropped 3px.
-- **Knob lift** (`box-shadow: 0 1px 0 rgba(0, 0, 20, 0.27)`): under the toggle's white knob.
-- **Status halo** (`box-shadow: 0 0 0 2.5px` in the light's color at 24%): around each 7px status dot.
+The system is completely flat: no shadows and no gradients. Depth comes from three value steps (ground, then panel, then raised) and from 1px rules. Panels stand on the ground through their fill and a Rule border. The rail's selection and hover states step up to Raised. The only surface that comes forward is the light answer slab, and it does that through value, not lift. Page transitions move content along a single vertical axis, so there's no z-depth.
 
 ### Named Rules
-**The Lit Rim Rule.** Every glass surface (panels, the rail, the rail pill, the Segmented pill and the mark) has a 1px rim drawn as a gradient that's brightest at the top-left (white at 31%, or periwinkle at 47% on the hero) and fades to about 5% at the bottom-right.
-
-**The Hero Light Rule.** Only the answer panel catches accent light: a radial Electric Blue wash from its top-left at 27%, fading to nothing.
+**The No Light Source Rule.** Nothing casts a shadow, glows or is lit by a gradient. To separate two things, step the value or draw a 1px rule.
 
 ## Shapes
 
-The language is capsules and soft rectangles. Every control is a capsule or near-capsule: buttons (16px radius), small buttons and nav tabs (14px), the Start button and status capsule (18px, half their height), chips (11px on 22px), the toggle, the Segmented control and the strip (each half its height). Containers are larger soft rectangles: glass panels (22px), the rail (24px), the log well (14px), chat bubbles (18px) and inputs (11px). Bars are 4px tall with 2px radii, and the answer bar is 8px tall with 4px radii. The mark is a rounded tile (28% radius) with a viewfinder glyph.
+The form language is square. Framed controls drawn by the style sheet (buttons, fields, chips, panels, the slab, bubbles, the strip) have 2px corners, small enough to read as square. Thumb-scale details (the slider handle, the scroll bar handle, the strip's CODE/RIDDLE chip) use 1px. Everything painted is a true square with 0 radius: toggle tracks and knobs, segmented cells and their block, swatches, status lights, the timing bar and its legend squares, box tags and the picker's size card. Lines are 1px. Chevrons are square-capped, mitred 2.2px strokes. The only icon in the system is the letter M.
 
-The one square form is the viewfinder. The on-screen box's capture area is a square-cornered faint outline with bright corner arms (6% of the shorter side). Zones are dashed (code lines) or dotted (riddle rows). This shape repeats in the Overlay tab icon and the mark.
-
-Icons are drawn as line paths on a 24-unit grid, with a 1.9 stroke and round caps and joins. Glyph fonts are not used.
+**The Square Rule.** Corners never go above 2px. There are no pills, no circles and no capsules: a status light is a 7px square, and a toggle knob is a 13px square.
 
 ## Components
 
 ### Buttons
-Translucent glass capsules that brighten on hover. Primary actions get the blue gradient.
-- **Shape:** capsule (16px radius; 14px on small buttons; 18px on Start).
-- **Default:** white at 8% with a white 12% border, Moon White label text, 7px × 16px padding.
-- **Hover / Pressed / Focus:** hover raises the fill to 14% and the border to 20%. Pressed drops the fill to 5%. Focus turns the border Periwinkle Light (white on primary buttons). Disabled text drops to 35%.
-- **Primary** ("Pick on screen", "Load AI", "Send"): a diagonal gradient from Bright Periwinkle to Deep Cobalt, white text, and a white 20% border. Hover brightens it to #82a5ff → #4a6cff, and pressed deepens it to #5279f2 → #314fd8.
-- **Start / Stop:** a 36px capsule in the header with the same gradient, at 10.5pt with 28px horizontal padding. While watching it becomes Stop: Stop Red at 18% (28% on hover), a red 55% border and stop-ink text.
-- **Suggestion:** the default glass capsule with Lavender Gray body text, which turns Moon White on hover.
+Blocks and outlines, set in capitals, with nothing soft about them.
+- **Shape:** squared (2px), with a 1px border.
+- **Primary:** an Instrument Ink block with ground-black text (8px 14px). Hover goes to pure white and pressed to Pressed Ink. START is the same block at 34px tall with 22px side padding and a 72px minimum width. While watching it becomes STOP: transparent with a coral outline and coral text, and hover adds an 11% coral wash.
+- **Outline (default):** transparent with a Strong Rule outline and Instrument Ink text. Hover gives a Hover Rule outline on a Raised fill, and pressed gives a near-ground fill (#0f0f10).
+- **Small:** the outline button at 8pt with 5px 10px padding (Copy, Clear, New chat, Load/Unload AI).
+- **On the slab:** a ground-black outline with ground-black text. Hover inverts it to a ground fill with slab-colored text.
+- **Suggestion:** a sentence-case body-font outline button, left-aligned, in Secondary Text that turns Instrument Ink on hover. This is the one exception to capitals.
+- **Focus:** the border turns Focus Ice. **Disabled:** dims to Hover Rule text and a Rule outline (on the primary, the fill drops to Rule).
 
 ### Chips
-- **Style:** 22px capsules with an 11px radius, Text Semibold at 8.5pt, a translucent fill and a stronger border in the same hue.
-- **Kind** (RIDDLE / CODE): Electric Blue at 18% with a periwinkle 39% border and Ice Blue Ink text.
-- **Pasted:** Live Green at 13% with a 43% border. **Copied** is plain white at 6% with Lavender Gray text.
-- **Guess / lock note:** Guess Amber at 13% with a 43% border and amber chip ink, at 9pt.
+- **Style:** 20px tall, 8px side padding, 2px corners, 8pt mono medium in capitals. On the dark panels a chip has a Strong Rule outline. On the slab it has a ground-black outline.
+- **State:** PASTED inverts to a solid ground-black chip with slab-colored text, and COPIED stays as an outline. The GUESS chip ("Guess: no fact matched") is a solid amber block with Amber Ink text.
 
 ### Cards / Containers
-- **Corner Style:** 22px (the rail is 24px).
-- **Background:** the navy glass tint of each kind (panel, rail or hero) plus the white sheen.
-- **Shadow Strategy:** the glass drop and lit rim (see Elevation & Depth). The hero adds the accent wash.
-- **Border:** the painted 1px gradient rim. There are no stylesheet borders.
-- **Internal Padding:** 18px (12px in the rail), inside an 8px shadow margin.
+- **Corner Style:** squared (2px).
+- **Background:** Panel, with a 1px Rule border. The answer slab is Ice Slab with no border.
+- **Shadow Strategy:** none (see Elevation & Depth).
+- **Internal Padding:** 18px for panels, 22px for the slab.
 
 ### Inputs / Fields
-- **Style:** a black 25% well with a white 10% border, an 11px radius and 6px × 10px padding. The chat input uses a 16px radius and 8px × 12px padding at 50px tall.
-- **Hover / Focus:** hover raises the border to 18%. Focus turns the border Periwinkle Light and deepens the well to 33%.
-- **Error / Disabled:** an invalid field gets a Stop Red border on a red 10% wash. Disabled fields drop to a 12% well with a 5% border and 35% text.
-- **Drop-downs and spin boxes:** painted Lavender Gray chevrons (2.4 stroke, round caps), dimmed to #4a5280 when disabled. Lists open on Popup Navy with selection in Electric Blue at 59%.
-- **Toggle:** a 42 × 24 track (white 14% when off), which cross-fades to the blue gradient when on. It has a 20px white knob and slides in 220ms.
-- **Segmented:** a 32px capsule well (black 28%) with a glass pill (periwinkle-to-cobalt at 43% → 35%, with a periwinkle rim) that slides to the chosen segment in 240ms. Labels are Moon White when chosen or hovered and Lavender Gray otherwise. Left and right arrow keys move the choice.
-- **Slider:** a 4px groove (white 14%), a fill from Bright Periwinkle to Electric Blue, and an 18px white handle.
-- **Swatches:** five 16px color dots (cyan #3cc8ff, green #3ee39a, yellow #ffd23f, pink #ff5fd2 and white) with a white 20% rim. The chosen dot gets a 2px white ring, which turns Periwinkle Light under focus.
+- **Style:** Field fill, a 1px Strong Rule outline, 2px corners, 7px 10px padding, values in 8.5pt mono. Spin boxes and drop-downs use painted square chevrons in Secondary Text. Selection is Instrument Ink with ground-black text.
+- **Focus:** the outline turns Focus Ice. **Hover:** the outline turns Hover Rule.
+- **Error / Disabled:** an invalid field gets a coral outline on an 8% coral wash. A disabled field goes transparent with Hover Rule text and a Rule outline.
+- **Slider:** a 2px Strong Rule groove with an Instrument Ink fill and a 12px square handle that turns white on hover.
 
 ### Navigation
-- **Style:** 40px tabs in Text Semibold at 10pt, each with an 18px line icon. Unselected tabs are Lavender Gray on transparent, and hover adds Moon White text on white 4%.
-- **Active:** Moon White text and a white icon over the RailPill, a 14px-radius glass capsule (periwinkle 31% → cobalt 20%, with a lit rim) that slides to the chosen tab in 260ms.
-- **Page change:** the old page's snapshot fades out over the new page (260ms) while the new page rises 10px into place from 35% opacity.
+Four text tabs (HOME, CHAT, OVERLAY, SETTINGS), 38px tall, in 9pt mono capitals, with their Ctrl shortcut number right-aligned in 8pt mono. Inactive tabs are Secondary Text. Hover and the selected tab are Instrument Ink. The selected tab sits on a Raised block with a 1px ink bar on its left edge, and the block springs between tabs (0.42s, bounce 0.35, launched toward the target at 12 px/s per px of travel, up to 600 px/s, so it overshoots about 4–5px). When you change pages, later tabs rise in from below and earlier ones drop in from above: the page travels 36px on a 0.5s, 0.35-bounce spring launched at 450 px/s, while the old page fades out over 0.22s and drifts 10px the other way.
 
-### Status Lights
-A 7px dot inside a 12px halo at 24% of the same color. Green is live or ready, amber is loading, red is error, gray is off, and blue is available. In the header the light sits inside the status capsule (white 6% fill with a white 10% border, 18px radius), and the status text turns from Lavender Gray to Moon White while live.
+### Toggles and Segmented Controls
+- **Toggle:** a square 38 × 19 track (Panel, Strong Rule outline) with a 13px square knob in Secondary Text. When it's on, the track fills with Instrument Ink and the knob turns ground black. It springs at 0.34s, bounce 0.32.
+- **Segmented:** square cells 30px tall on Field, with 1px Rule dividers. A square Instrument Ink block springs to the chosen cell (0.36s, bounce 0.3), and text under the block is clipped to ground black. It's used for the Model choice and Animations (On / Windows / Off).
+- **Swatches:** 14px squares that grow to 18px when chosen, with a 1px ring offset 3.5px (Instrument Ink, or Focus Ice when focused).
 
-### Answer Pipeline (signature)
-A proportional bar under the answer showing where the time went: an 8px track (white 8%) holds Read (cyan), AI (violet) and Paste (green) segments with 3px gaps and 4px radii. It grows from zero over 700ms with exponential ease-out, the one long motion in the system. Below it, a legend gives each stage's dot, name and seconds in Lavender Gray at 9pt.
+### The Answer Slab (signature)
+The one light slab: the answer in Display type with a small Copy button, the riddle line in Slab Secondary, then a row of chips (kind, PASTED or COPIED, and GUESS when there is one) with the total time in Title type on the right. Under that is the timing bar: a 6px bar split into read, AI and paste segments with 2px gaps, proportional to where the time went, and a legend of 6px squares with "READ 0.42 s"-style captions. The bar grows from zero on a 0.6s spring with no bounce.
 
-### Chat Bubbles
-User bubbles are right-aligned on the blue gradient with white text. AI bubbles are left-aligned on white 7% glass with a white 10% border. Error bubbles use Stop Red at 12% with a 40% border and chip-ink-red text. All three have an 18px radius and 10px × 15px padding.
+### The Game Strip, Box Tags and Picker (signature)
+Everything drawn over the game is dark and square with white text, and can't be clicked or focused. The strip and the box are also hidden from screen capture. The strip is a 36px bar (30 and 44px at the small and large sizes) of translucent ground with a faint white hairline, both scaled by the strip's opacity setting (85% by default). It shows a CODE/RIDDLE chip (ink on ground), the answer in Big Shoulders, the seconds in dimmed white mono, the state (PASTED in mint, COPIED in plain ink), and a separate amber GUESS flag. A pasted guess shows both. Box tags are square mono-capital labels on 91% ground, outlined in the box color. The area picker dims the screen to 59% black, draws the selection in Overlay Cyan with a size tag, and shows its instructions on a square card. It's the only one of these that takes focus, and only while you drag.
 
-### The Strip (over the game)
-A capsule (30, 36 or 44px tall, with a radius of half the height) in a vertical dark glass gradient (strip-glass-top → strip-glass-floor), with a white border at 24%. The player's opacity setting (0–100%, default 85%) scales both the glass and the border. Contents, left to right: a kind chip (Electric Blue at 47% with a periwinkle border), the answer in Display Semibold white, the seconds in pale lavender, the state in Strip Green (or white at 86% for copied or building), and "guess" in Strip Amber. Text sizes are 9, 11 or 14pt. The strip sits 16px in from a chosen screen corner.
-
-### The Box and the Picker (over the game)
-Box tags are capsules filled with tag-glass, rimmed in the box color at 78%, with white Text Semibold at 12px. Read lines are boxed with a 5px radius at 18% of the box color. The area picker shades the screen with navy at 55% and cuts the selection out of the shade. The selection is outlined in cyan with a size tag, and the instructions sit in a dark glass capsule (22px radius) at the top. The reading-area preview in the window shows the monitor as a dark glass pane with a faint 8 × 5 grid.
-
-### Named Rules
-**The Dark Glass Over the Game Rule.** Anything drawn over the game is dark navy glass with white text. The strip and the box are click-through, never take focus, and are excluded from screen capture. The picker is the one exception: it's a deliberate, temporary capture of the mouse, and Esc or right-click cancels it.
-
-**The Capsule Control Rule.** Every interactive control is a capsule. Square corners belong only to the viewfinder.
+### Activity Log and Chat
+The log is borderless 8.5pt mono in a light grey (#c9c9ce) inside a panel. User chat bubbles are Instrument Ink blocks with ground-black text, AI bubbles are Raised with a Rule border, and error bubbles are a coral outline on a coral wash. All of them have 2px corners and 10px 15px padding.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** float every grouping on Glass (22px radius, 18px padding, 8px shadow margin) over the painted Backdrop. Never put a grouping on a flat fill.
-- **Do** keep Electric Blue for selection and primary actions, and use the blue gradient (#6a93ff → #3a5ef0) for the one primary action in a group.
-- **Do** flag every guess in amber, beside the pasted or copied state rather than in its place.
-- **Do** use green for live or pasted, amber for guess or loading, and red for stop, error or low VRAM, everywhere, including the strip.
-- **Do** animate with exponential ease-out at 220–260ms, and keep 700ms for the answer bar alone.
-- **Do** give every control a Periwinkle Light focus ring for Tab, and no ring after a mouse click.
-- **Do** keep the answer the only display-size text, shrinking it to fit rather than truncating it.
+- **Do** separate surfaces only with the three value steps (ground, panel, raised) and 1px rules.
+- **Do** keep the answer slab the one light surface on screen, and give the last answer Display type on it.
+- **Do** set every label, button, chip and number in Martian Mono capitals, with units left lowercase ("READ 0.42 s").
+- **Do** flag every guess in amber, and show PASTED next to it when a guess was pasted. Never let one replace the other.
+- **Do** keep anything drawn over the game dark, square and white-lettered, and make it impossible to click or focus. The picker is the one exception, and only while dragging.
+- **Do** drive motion with springs defined by duration and bounce, with bounce at or under 0.35, and carry the current velocity into any retarget.
+- **Do** move pages along their tab order: later tabs come from below, earlier ones from above.
+- **Do** snap every spring to its end when Animations is Off, or when it's set to Windows and Windows' animation effects are off.
+- **Do** keep feedback brief and exact: state changes show up as a square light, a chip or a one-line mono status, not a dialog.
 
 ### Don't:
-- **Don't** use Electric Blue to mean a state, or a signal color as decoration.
-- **Don't** bring back the retired light look: light skies, light glass cards and glossy buttons.
-- **Don't** make anything drawn over the game clickable or focusable, light-colored, or visible to MASSAB's own screen capture.
-- **Don't** try to fake blur or shadows in the style sheet. Paint them in theme.py, and carry new depth through Glass.
-- **Don't** add square-cornered controls. Square corners belong to the viewfinder only.
-- **Don't** use monospace outside the log.
+- **Don't** use shadows, glows, gradients, blur or glass anywhere.
+- **Don't** round past 2px or use pills, circles or capsules. Lights, knobs and swatches are squares.
+- **Don't** use Focus Ice for anything except focus rings.
+- **Don't** use mint, amber or coral decoratively, or show one of their meanings in another color.
+- **Don't** add a second light slab, banner or card. The light surface belongs to the answer.
+- **Don't** use Big Shoulders for labels or body text, or Segoe for numbers.
+- **Don't** use bounce above 0.35, start a spring from zero velocity when it's interrupted mid-flight, or make motion that can't be turned off.
+- **Don't** add a logo or icon set. The title is text, and its letter M is the icon.
