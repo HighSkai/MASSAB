@@ -8,11 +8,12 @@ from that corner and the screen's scale.
 import ctypes
 
 from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QGuiApplication, QLinearGradient, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QGuiApplication, QLinearGradient, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
 from codereader import ROI
 from riddle import BAND
+from theme import INK, TEXT3, font
 
 ZONES = (("code lines", ROI, Qt.PenStyle.DashLine), ("riddle rows", BAND, Qt.PenStyle.DotLine))
 
@@ -89,15 +90,17 @@ PASSIVE_FLAGS = (Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.Win
 def tag(p, point, text, color, scale):
     """A small rounded label with its top-left at point, drawn in frame pixels
     (scale = frame pixels per screen pixel)."""
-    font = QFont("Segoe UI", 1, QFont.Weight.DemiBold)
-    font.setPixelSize(max(8, round(12 * scale)))
-    p.setFont(font)
+    face = font("strong")
+    face.setPixelSize(max(8, round(12 * scale)))
+    p.setFont(face)
     metrics = p.fontMetrics()
-    pad = 5 * scale
+    pad = 6 * scale
     w, h = metrics.horizontalAdvance(text) + 2 * pad, metrics.height() + pad
     box = QRectF(point.x(), point.y(), w, h)
-    p.setPen(QPen(color, max(1.0, scale)))
-    p.setBrush(QColor(8, 36, 66, 215))
+    rim = QColor(color)
+    rim.setAlpha(200)
+    p.setPen(QPen(rim, max(1.0, scale)))
+    p.setBrush(QColor(10, 14, 40, 225))
     p.drawRoundedRect(box, h / 2, h / 2)
     p.setPen(QColor("white"))
     p.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
@@ -279,7 +282,7 @@ class AreaPicker(QWidget):
             hole = QPainterPath()
             hole.addRect(rect)
             shade = shade.subtracted(hole)
-        p.fillPath(shade, QColor(6, 32, 62, 120))
+        p.fillPath(shade, QColor(3, 5, 20, 140))
 
         if self.current is not None and rect is None:
             p.setPen(QPen(QColor(255, 255, 255, 160), 1.5, Qt.PenStyle.DashLine))
@@ -290,21 +293,20 @@ class AreaPicker(QWidget):
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawRect(rect)
             _, _, w, h = self.native_selection()
-            tag(p, rect.bottomRight() + QPointF(-110, 8), f"{w} x {h}", QColor("#3cc8ff"), 1)
+            tag(p, rect.bottomRight() + QPointF(-110, 8), f"{w} × {h}", QColor("#3cc8ff"), 1)
 
-        # Instructions on a glass card near the top.
-        text = "Drag over the part of the screen MASSAB should read.  Esc cancels."
-        font = QFont("Segoe UI", 12)
-        p.setFont(font)
-        width = p.fontMetrics().horizontalAdvance(text) + 40
+        # Instructions on a glass capsule near the top.
+        text = "Drag over the area MASSAB should read. Esc cancels."
+        p.setFont(font("text", 11))
+        width = p.fontMetrics().horizontalAdvance(text) + 48
         card = QRectF((self.width() - width) / 2, 40, width, 44)
         fill = QLinearGradient(card.topLeft(), card.bottomLeft())
-        fill.setColorAt(0, QColor(255, 255, 255, 240))
-        fill.setColorAt(1, QColor(214, 238, 255, 230))
-        p.setPen(QPen(QColor(70, 140, 200), 1))
+        fill.setColorAt(0, QColor(30, 38, 90, 240))
+        fill.setColorAt(1, QColor(12, 16, 46, 240))
+        p.setPen(QPen(QColor(255, 255, 255, 60), 1))
         p.setBrush(fill)
-        p.drawRoundedRect(card, 14, 14)
-        p.setPen(QColor("#0e3557"))
+        p.drawRoundedRect(card, 22, 22)
+        p.setPen(QColor(INK))
         p.drawText(card, Qt.AlignmentFlag.AlignCenter, text)
 
 
@@ -327,52 +329,43 @@ class AreaPreview(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         mw, mh = (self.monitor[2], self.monitor[3]) if self.monitor else (16, 9)
-        stand_h = 22
-        avail_w, avail_h = self.width() - 8, self.height() - stand_h - 8
-        scale = min(avail_w / (mw + mw * 0.06), avail_h / (mh + mw * 0.06))
-        bezel_pad = mw * 0.03 * scale
+        scale = min((self.width() - 2) / mw, (self.height() - 2) / mh)
         sw, sh = mw * scale, mh * scale
-        bezel = QRectF((self.width() - sw) / 2 - bezel_pad, 4, sw + 2 * bezel_pad, sh + 2 * bezel_pad)
+        screen = QRectF((self.width() - sw) / 2, (self.height() - sh) / 2, sw, sh)
 
-        # Stand.
-        neck = QRectF(bezel.center().x() - 14, bezel.bottom() - 2, 28, stand_h - 8)
-        foot = QRectF(bezel.center().x() - 46, bezel.bottom() + stand_h - 12, 92, 8)
-        metal = QLinearGradient(neck.topLeft(), neck.topRight())
-        metal.setColorAt(0, QColor("#9fb3c4"))
-        metal.setColorAt(0.5, QColor("#eef4f8"))
-        metal.setColorAt(1, QColor("#8aa0b3"))
-        p.setPen(QPen(QColor("#6f879c"), 1))
-        p.setBrush(metal)
-        p.drawRect(neck)
-        p.drawRoundedRect(foot, 4, 4)
-
-        # Bezel: glossy black plastic.
-        plastic = QLinearGradient(bezel.topLeft(), bezel.bottomLeft())
-        plastic.setColorAt(0, QColor("#4a5866"))
-        plastic.setColorAt(0.5, QColor("#1b2530"))
-        plastic.setColorAt(1, QColor("#0d141b"))
-        p.setPen(QPen(QColor("#0a1016"), 1))
-        p.setBrush(plastic)
-        p.drawRoundedRect(bezel, 8, 8)
-
-        screen = QRectF(bezel.left() + bezel_pad, bezel.top() + bezel_pad, sw, sh)
-        glass = QLinearGradient(screen.topLeft(), screen.bottomLeft())
-        glass.setColorAt(0, QColor("#2c6f9e"))
-        glass.setColorAt(1, QColor("#123a5a"))
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(glass)
-        p.drawRect(screen)
+        # The monitor as a dark glass pane with a faint grid, so the area reads as part of a screen.
+        pane = QPainterPath()
+        pane.addRoundedRect(screen, 12, 12)
+        fill = QLinearGradient(screen.topLeft(), screen.bottomRight())
+        fill.setColorAt(0, QColor(30, 40, 96, 200))
+        fill.setColorAt(1, QColor(6, 9, 30, 220))
+        p.fillPath(pane, fill)
+        p.save()
+        p.setClipPath(pane)
+        p.setPen(QPen(QColor(255, 255, 255, 12), 1))
+        for i in range(1, 8):
+            x = screen.left() + screen.width() * i / 8
+            p.drawLine(QPointF(x, screen.top()), QPointF(x, screen.bottom()))
+        for i in range(1, 5):
+            y = screen.top() + screen.height() * i / 5
+            p.drawLine(QPointF(screen.left(), y), QPointF(screen.right(), y))
+        p.restore()
+        p.setPen(QPen(QColor(255, 255, 255, 46), 1))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawRoundedRect(screen.adjusted(0.5, 0.5, -0.5, -0.5), 12, 12)
 
         if self.monitor and self.area:
             ax, ay, aw, ah = self.area
             area = QRectF(screen.left() + (ax - self.monitor[0]) * scale, screen.top() + (ay - self.monitor[1]) * scale,
                           aw * scale, ah * scale).intersected(screen)
             if not area.isEmpty():
+                p.save()
+                p.setClipPath(pane)
                 p.setPen(QPen(self.color, 1.5))
                 fill = QColor(self.color)
-                fill.setAlpha(40)
+                fill.setAlpha(34)
                 p.setBrush(fill)
-                p.drawRect(area)
+                p.drawRect(area.adjusted(0.75, 0.75, -0.75, -0.75))
                 for i, (_, (x0, y0, x1, y1), style) in enumerate(ZONES):
                     zone = QRectF(area.left() + x0 * area.width(), area.top() + y0 * area.height(),
                                   (x1 - x0) * area.width(), (y1 - y0) * area.height())
@@ -380,21 +373,12 @@ class AreaPreview(QWidget):
                     p.setPen(QPen(color, 1, style))
                     p.setBrush(Qt.BrushStyle.NoBrush)
                     p.drawRect(zone)
+                p.restore()
         if self.caption:
-            p.setPen(QColor(255, 255, 255, 220))
-            font = QFont("Segoe UI", 8)
-            p.setFont(font)
-            p.drawText(screen.adjusted(6, 4, -6, -4), Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
+            p.setPen(QColor(INK if self.area else TEXT3))
+            p.setFont(font("text", 8.5))
+            p.drawText(screen.adjusted(10, 6, -10, -8), Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight,
                        self.caption)
-
-        # A reflection across the glass.
-        shine = QPainterPath()
-        shine.moveTo(screen.topLeft())
-        shine.lineTo(screen.left() + screen.width() * 0.55, screen.top())
-        shine.lineTo(screen.left() + screen.width() * 0.25, screen.bottom())
-        shine.lineTo(screen.bottomLeft())
-        shine.closeSubpath()
-        p.fillPath(shine, QColor(255, 255, 255, 22))
 
     def sizeHint(self):
         return QRect(0, 0, 320, 170).size()

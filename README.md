@@ -55,11 +55,11 @@ A riddle needs an intro, the same way a code does, so everyday chat is left alon
 
 The riddle can be on the same line as either kind. Lines about one that's over, like "that was a bad riddle", "the code was X" or "the answer was X", are ignored.
 
-The window has four pages:
+The window has four pages, in the sidebar on the left. The AI's state and how much VRAM is in use are at the bottom of the sidebar.
 
 | Page | What's on it |
 |---|---|
-| Home | The last answer, with how long each step took, and a log of everything that happened |
+| Home | The last answer, a bar showing how long reading, the AI and pasting took, and a log of everything that happened |
 | Chat | Ask the AI anything. It's the riddle model, so it's quick but small |
 | Overlay | Where on screen MASSAB reads, a box that shows it over the game, and the strip |
 | Settings | Codes, pasting and the AI |
@@ -70,13 +70,13 @@ The strip at the bottom left of the screen shows whether it's a code or a riddle
 
 MASSAB reads the whole monitor unless you give it an area. On the Overlay page, **Pick on screen** lets you drag a box over the part to read, or type it as `x,y,w,h` in pixels. The preview shows where it is, with the zones inside it where code lines and riddle rows are looked for.
 
-**Show the box** draws that area over the game: never, while watching, or always. It can also mark the two zones, and highlight each line of text as it's read, labeled with what OCR made of it. That's the quickest way to check MASSAB is looking in the right place. The box can't be clicked and is hidden from screen capture, so MASSAB never reads its own labels. Its color, line width and opacity can be changed.
+The **On-screen box** draws that area over the game: never, while watching, or always. It can also mark the two zones, and highlight each line of text as it's read, labeled with what OCR made of it. That's the quickest way to check MASSAB is looking in the right place. The box can't be clicked and is hidden from screen capture, so MASSAB never reads its own labels. Pick its color from the swatches if it's hard to see over your game.
 
 Settings that only take effect when watching starts, like the area and pasting, are greyed out until you press Stop.
 
 ### Chat
 
-The Chat page talks to the same model that solves riddles, once it's loaded. With **Fact sheet** on, questions about the game get the matching lines of `data/sab_facts.md`, like riddles do. Replies are short, because the model only has room for about the last 3,000 characters of the chat.
+The Chat page talks to the same model that solves riddles, once it's loaded. With **Use the fact sheet** on, questions about the game get the matching lines of `data/sab_facts.md`, like riddles do. Replies are short, because the model only has room for about the last 3,000 characters of the chat.
 
 The model can only do one thing at a time, so a riddle on screen always comes first: it cuts off any reply that's still coming in.
 
@@ -84,7 +84,7 @@ An answer is pasted as soon as there is one, and replaced if more of the riddle 
 
 If Windows blocks screen capture, for example at a lock screen or admin prompt, the log says so and watching carries on by itself once it's gone.
 
-A paste presses six keys with a short wait after each, 15 ms by default, so Roblox sees every one. If pastes go missing or come out wrong, raise **Wait after each pasted key** in Settings.
+A paste presses six keys with a short wait after each, 15 ms by default, so Roblox sees every one. If pastes go missing or come out wrong, raise **Wait after each key** in Settings.
 
 **`GUESS`** means no line of the fact sheet covers the riddle, so the model answered from memory. Don't trust it.
 

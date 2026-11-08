@@ -8,6 +8,7 @@ Codes and riddles are both watched for, the whole time. Pasting only works
 while Roblox is the active window, so nothing here may take focus during play:
 the strip and the box can't be clicked or focused.
 """
+import html
 import json
 import os
 import re
@@ -17,11 +18,11 @@ import time
 
 import cv2
 import numpy as np
-from PySide6.QtCore import Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFontMetrics, QGuiApplication, QIcon, QTextDocument
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFrame,
-                               QHBoxLayout, QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar, QPushButton,
-                               QScrollArea, QSizePolicy, QSlider, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QFrame, QHBoxLayout,
+                               QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea,
+                               QSizePolicy, QSlider, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
 
 import chat
 import setup_ai
@@ -31,13 +32,18 @@ from overlay import (PASSIVE_FLAGS, AreaOverlay, AreaPicker, AreaPreview, captur
                      monitor_rects, screen_for)
 from riddle import FACTS_PATH, gpu_memory
 from setup_ai import APP_DIR, DEFAULT_MODEL, MODELS, ai_installed
-from theme import Glass, Light, Sky, Toggle, label, orb, separator, style_sheet
+from theme import (TEXT3, Backdrop, Columns, Glass, Light, NavRail, PipelineBar, Segmented, Swatches, Toggle,
+                   apply, cross_fade, dark_title_bar, icon, label, mark, rise_in, separator)
 
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
-OVERLAY_WHEN = {"never": "Never", "watching": "While watching", "always": "Always"}
+OVERLAY_WHEN = {"never": "Never", "watching": "Watching", "always": "Always"}
 HUD_CORNERS = ("bottom left", "bottom right", "bottom center", "top left", "top right")
 HUD_SIZES = {"small": 9, "normal": 11, "large": 14}
-MODEL_NAMES = {"4b": "4B, best answers", "2b": "2B, lighter on VRAM"}
+HUD_HEIGHTS = {"small": 30, "normal": 36, "large": 44}   # the strip is a capsule: its radius is half of this
+HUD_CHIPS = {"small": (8, 18), "normal": (9, 22), "large": (11, 26)}     # the CODE/RIDDLE chip's (pt, height)
+FIELD_WIDTH = 150
+SCROLL_GUTTER = 10      # every page keeps room for a scroll bar, so panels line up from tab to tab
+MODEL_NAMES = {"4b": "4B", "2b": "2B"}
 DEFAULTS = {
     "words": 3, "end_gap": 6.0, "paste": True, "paste_window": "Roblox", "key_delay_ms": 15,
     "monitor": 1, "region": "", "model": DEFAULT_MODEL, "ai_autoload": True,
@@ -50,11 +56,12 @@ CHOICES = {"model": tuple(MODELS), "overlay": tuple(OVERLAY_WHEN), "hud_corner":
            "hud_size": tuple(HUD_SIZES)}
 COLOR = re.compile(r"#[0-9a-fA-F]{6}")
 PAGES = ("Home", "Chat", "Overlay", "Settings")
-SUGGESTIONS = ("What rarities are there in Steal a Brainrot?", "When did Steal a Brainrot come out?",
-               "Give me three tips for protecting my base")
+PAGE_ICONS = ("home", "chat", "overlay", "sliders")
+SUGGESTIONS = ("What rarities are there?", "When did Steal a Brainrot come out?", "How do I protect my base?")
 LOW_VRAM_MIB = 500
 VRAM_CHECK_MS = 3000
 LOG_LINES = 1000
+ANSWER_PT = (30, 11)    # the last answer's biggest and smallest size
 
 
 def load_settings(path=SETTINGS_PATH):
@@ -117,13 +124,15 @@ class Hud(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.frame = QFrame(objectName="hud")
         row = QHBoxLayout(self.frame)
-        row.setContentsMargins(9, 6, 13, 6)
+        row.setContentsMargins(8, 6, 16, 6)
         row.setSpacing(10)
         self.kind = QLabel(objectName="hudKind", visible=False)
         self.answer = QLabel("Waiting", objectName="hudAnswer")
         self.seconds = QLabel(objectName="hudSeconds")
         self.state = QLabel(objectName="hudState")
-        for widget in (self.kind, self.answer, self.seconds, self.state):
+        self.flag = QLabel("guess", objectName="hudFlag", visible=False)
+        self.flag.setToolTip("No fact matched this riddle, so the AI answered from memory")
+        for widget in (self.kind, self.answer, self.seconds, self.state, self.flag):
             row.addWidget(widget)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -137,14 +146,19 @@ class Hud(QWidget):
         self.place()
 
     def set_look(self, corner, size, opacity, screen=None):
-        """Where it sits, how big its text is, and how see-through its glass is (0-100)."""
+        """Where it sits, how big its text is, and how solid its glass is (0-100)."""
         self.corner, self.target = corner, screen
-        a = round(255 * opacity / 100)
+        a = opacity / 100
+        pt, height = HUD_SIZES[size], HUD_HEIGHTS[size]
+        chip_pt, chip_h = HUD_CHIPS[size]
+        self.frame.setFixedHeight(height)
         self.frame.setStyleSheet(
-            f"QFrame#hud {{ border: 1px solid rgba(150, 215, 255, {a}); border-radius: 12px;"
-            f" background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(70, 130, 185, {a}),"
-            f" stop:0.5 rgba(20, 66, 112, {a}), stop:1 rgba(10, 40, 76, {a})); }}"
-            f" QFrame#hud QLabel {{ font-size: {HUD_SIZES[size]}pt; }}")
+            f"QFrame#hud {{ border-radius: {height // 2}px; border: 1px solid rgba(255, 255, 255, {round(60 * a)});"
+            f" background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(28, 36, 86, {round(255 * a)}),"
+            f" stop:1 rgba(8, 11, 34, {round(255 * a)})); }}"
+            f" QFrame#hud QLabel {{ font-size: {pt}pt; }}"
+            f" QFrame#hud QLabel#hudKind {{ font-size: {chip_pt}pt; border-radius: {chip_h // 2}px;"
+            f" min-height: {chip_h}px; max-height: {chip_h}px; }}")
         self.place()
 
     def place(self):
@@ -157,14 +171,16 @@ class Hud(QWidget):
         self.move(x, y)
 
     def show_result(self, text, kind="", seconds="", state="", guess=False):
-        """kind is CODE or RIDDLE, for the chip in front."""
+        """kind is CODE or RIDDLE, for the chip in front. state is how the answer got
+        to the game; a guess is flagged beside it, so a pasted guess still says pasted."""
         self.kind.setText(kind)
         self.kind.setVisible(bool(kind))
         self.answer.setText(text)
         self.seconds.setText(seconds)
         self.state.setText(state)
-        self.state.setProperty("guess", guess)
+        self.state.setProperty("plain", state in ("copied", "building"))
         self.state.style().polish(self.state)
+        self.flag.setVisible(guess)
         self.place()
 
 
@@ -203,8 +219,10 @@ class Panel(QMainWindow):
         self.chat_stop_reason = ""
         self.chat_pinned = True
         self.bubbles = []
+        self.lock_notes = []
+        self.titled = False
         self.setWindowTitle("MASSAB")
-        self.setWindowIcon(QIcon(orb(64)))
+        self.setWindowIcon(QIcon(mark(64)))
 
         self.engine = Engine(self.options(), self.from_engine)
         self.relay.connect(self.on_event)
@@ -212,8 +230,12 @@ class Panel(QMainWindow):
         self.overlay = AreaOverlay()
 
         self.build()
-        self.resize(720, 780)
-        self.setMinimumSize(640, 640)
+        # Clicking a button shouldn't leave a focus ring on it; Tab still reaches every control.
+        for button in self.findChildren(QAbstractButton):
+            if not isinstance(button, QCheckBox):
+                button.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self.resize(980, 640)
+        self.setMinimumSize(880, 580)
         self.check_region()
         self.show_ai("off")
         self.show_watching(False)
@@ -225,6 +247,12 @@ class Panel(QMainWindow):
         self.vram_timer = QTimer(self, interval=VRAM_CHECK_MS, timeout=self.check_vram)
         self.vram_timer.start()
         self.check_vram()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self.titled and QGuiApplication.platformName() == "windows":
+            self.titled = True
+            dark_title_bar(self)
 
     def options(self):
         s = self.settings
@@ -247,79 +275,101 @@ class Panel(QMainWindow):
     # --- building the window --------------------------------------------------
 
     def build(self):
-        root = Sky()
-        layout = QVBoxLayout(root)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(2)
+        root = Backdrop()
+        outer = QHBoxLayout(root)
+        outer.setContentsMargins(8, 8, 8, 8)
+        outer.setSpacing(0)
+        outer.addWidget(self.build_sidebar())
+        main = QVBoxLayout()
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(0)
+        main.addWidget(self.build_header())
         self.stack = QStackedWidget()
-        layout.addWidget(self.build_header())
-        layout.addLayout(self.build_nav())
         for build in (self.build_home, self.build_chat, self.build_overlay_page, self.build_settings_page):
             self.stack.addWidget(build())
-        layout.addWidget(self.stack, 1)
-        layout.addWidget(self.build_footer())
+        main.addWidget(self.stack, 1)
+        outer.addLayout(main, 1)
         self.setCentralWidget(root)
 
-    def build_header(self):
-        bar = Glass(radius=18, padding=6, bar=True)
-        row = bar.hbox(10)
+    def build_sidebar(self):
+        bar = Glass(radius=24, padding=12, kind="rail")
+        bar.setFixedWidth(228)
+        box = bar.vbox(0)
+        brand = QHBoxLayout()
+        brand.setContentsMargins(4, 2, 0, 0)
+        brand.setSpacing(10)
         logo = QLabel()
-        pixmap = orb(88)
-        pixmap.setDevicePixelRatio(2)
-        logo.setPixmap(pixmap)
-        titles = QVBoxLayout()
-        titles.setSpacing(0)
-        titles.addWidget(label("MASSAB", "title"))
-        self.status_label = label("", "subtitle")
-        titles.addWidget(self.status_label)
-        row.addWidget(logo)
-        row.addLayout(titles)
-        row.addStretch()
-        self.start_button = QPushButton("Start", objectName="go")
-        self.start_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.start_button.setMinimumWidth(96)
-        self.start_button.clicked.connect(self.toggle_watching)
-        row.addWidget(self.start_button)
+        logo.setPixmap(mark(32))
+        brand.addWidget(logo)
+        brand.addWidget(label("MASSAB", "brand"))
+        brand.addStretch()
+        box.addLayout(brand)
+        box.addSpacing(26)
+
+        self.rail = NavRail(list(zip(PAGES, PAGE_ICONS)))
+        self.nav = self.rail.group
+        self.nav.idClicked.connect(self.show_page)
+        box.addWidget(self.rail)
+        box.addStretch()
+
+        ai = QHBoxLayout()
+        ai.setContentsMargins(4, 0, 0, 0)
+        ai.setSpacing(6)
+        self.ai_light = Light()
+        self.ai_label = label("", "secondary")
+        ai.addWidget(self.ai_light)
+        ai.addWidget(self.ai_label, 1)
+        box.addLayout(ai)
+        box.addSpacing(10)
+        self.ai_button = QPushButton(objectName="small")
+        self.ai_button.clicked.connect(self.toggle_ai)
+        box.addWidget(self.ai_button)
+        box.addSpacing(18)
+        self.vram_label = label("VRAM", "hint")
+        self.vram_label.setContentsMargins(4, 0, 0, 0)
+        box.addWidget(self.vram_label)
+        box.addSpacing(7)
+        self.vram_bar = QProgressBar(textVisible=False)
+        box.addWidget(self.vram_bar)
+        box.addSpacing(4)
         return bar
 
-    def build_nav(self):
-        row = QHBoxLayout()
-        row.setContentsMargins(8, 2, 8, 2)
-        row.setSpacing(4)
-        self.nav = QButtonGroup(self)
-        for i, name in enumerate(PAGES):
-            button = QPushButton(name, objectName="nav", checkable=True)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.nav.addButton(button, i)
-            row.addWidget(button)
-        self.nav.button(0).setChecked(True)
-        self.nav.idClicked.connect(self.show_page)
+    def build_header(self):
+        bar = QWidget()
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(Glass.PAD + 6, 14, Glass.PAD, 10)
+        row.setSpacing(10)
+        self.page_title = label(PAGES[0], "pageTitle")
+        row.addWidget(self.page_title)
         row.addStretch()
-        return row
+        pill = QFrame(objectName="statusPill")
+        pill.setFixedHeight(36)
+        inner = QHBoxLayout(pill)
+        inner.setContentsMargins(12, 0, 16, 0)
+        inner.setSpacing(4)
+        self.status_light = Light()
+        self.status_label = label("", "statusText")
+        inner.addWidget(self.status_light)
+        inner.addWidget(self.status_label)
+        row.addWidget(pill, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.start_button = QPushButton("Start", objectName="go")
+        self.start_button.setFixedHeight(36)
+        self.start_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.start_button.clicked.connect(self.toggle_watching)
+        row.addWidget(self.start_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        return bar
 
     def show_page(self, index):
         self.nav.button(index).setChecked(True)
+        changed = index != self.stack.currentIndex()
+        if changed and self.isVisible():
+            cross_fade(self.stack, self.stack.currentWidget().grab(), self.stack.contentsRect())
         self.stack.setCurrentIndex(index)
+        self.page_title.setText(PAGES[index])
+        if changed and self.isVisible():
+            rise_in(self.stack.currentWidget(), self.stack.contentsRect().topLeft())
         if PAGES[index] == "Chat":
             self.chat_input.setFocus()
-
-    def build_footer(self):
-        bar = Glass(radius=14, padding=2, bar=True)
-        row = bar.hbox(8)
-        self.ai_light = Light()
-        self.ai_label = label("", "muted")
-        self.ai_button = QPushButton(objectName="small")
-        self.ai_button.clicked.connect(self.toggle_ai)
-        row.addWidget(self.ai_light)
-        row.addWidget(self.ai_label)
-        row.addWidget(self.ai_button)
-        row.addStretch()
-        self.vram_label = label("VRAM", "muted")
-        self.vram_bar = QProgressBar(textVisible=False)
-        self.vram_bar.setFixedWidth(140)
-        row.addWidget(self.vram_label)
-        row.addWidget(self.vram_bar)
-        return bar
 
     # The pages.
 
@@ -327,12 +377,17 @@ class Panel(QMainWindow):
         """A page, and the layout to fill it with. Long pages scroll."""
         page = QWidget(objectName="page")
         box = QVBoxLayout(page)
-        box.setContentsMargins(0, 0, 0, 0)
+        box.setContentsMargins(0, 0, 0 if scroll else SCROLL_GUTTER, 0)
         box.setSpacing(0)
         if not scroll:
             return page, box
         area = QScrollArea(widgetResizable=True, frameShape=QFrame.Shape.NoFrame)
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Always there, and invisible when there's nothing to scroll, so the panels never jump sideways.
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        bar = area.verticalScrollBar()
+        bar.rangeChanged.connect(lambda low, high, bar=bar: (bar.setProperty("idle", high <= low),
+                                                             bar.style().polish(bar)))
         area.viewport().setAutoFillBackground(False)
         inner = QWidget(objectName="scrollInner")
         content = QVBoxLayout(inner)
@@ -342,27 +397,46 @@ class Panel(QMainWindow):
         box.addWidget(area)
         return page, content
 
-    def card(self, title=None, hint=None):
-        card = Glass()
-        box = card.vbox(6)
+    def card(self, title=None, hint=None, kind="panel"):
+        card = Glass(kind=kind)
+        box = card.vbox(0)
         if title:
-            box.addWidget(label(title, "heading"))
+            box.addWidget(label(title, "cardTitle"))
         if hint:
+            box.addSpacing(3)
             box.addWidget(label(hint, "hint", wrap=True))
+        if title or hint:
+            box.addSpacing(8)
         return card, box
 
-    def setting_row(self, title, widget, hint=None):
+    def lock_note(self):
+        holder = QWidget()
+        row = QHBoxLayout(holder)
+        row.setContentsMargins(Glass.PAD + 4, 0, 0, 6)
+        row.addWidget(label("Stop watching to change the greyed-out settings.", "warning"))
+        row.addStretch()
+        holder.hide()
+        self.lock_notes.append(holder)
+        return holder
+
+    def setting_row(self, title, widget, hint=None, tip=None):
+        """A label on the left and its control on the right. A tip shows on hover;
+        a hint is for the few things worth saying out loud."""
         row = QWidget()
         line = QHBoxLayout(row)
-        line.setContentsMargins(0, 3, 0, 3)
-        line.setSpacing(14)
+        line.setContentsMargins(0, 9, 0, 9)
+        line.setSpacing(16)
         text = QVBoxLayout()
-        text.setSpacing(0)
-        text.addWidget(label(title))
+        text.setSpacing(2)
+        name = label(title)
+        text.addWidget(name)
         if hint:
             text.addWidget(label(hint, "hint", wrap=True))
         line.addLayout(text, 1)
         line.addWidget(widget, 0, Qt.AlignmentFlag.AlignVCenter)
+        if tip:
+            name.setToolTip(tip)
+            widget.setToolTip(tip)
         return row
 
     def add_rows(self, box, rows):
@@ -373,44 +447,60 @@ class Panel(QMainWindow):
 
     def build_home(self):
         page, box = self.page()
-        card, c = self.card()
+        card, c = self.card(kind="hero")
         top = QHBoxLayout()
-        top.addWidget(label("LAST ANSWER", "caps"))
-        self.kind_label = label("", "chip")
-        self.kind_label.hide()
-        top.addWidget(self.kind_label)
-        top.addStretch()
-        self.copy_button = QPushButton("Copy", objectName="small", enabled=False)
-        self.copy_button.setToolTip("Copy the answer again")
-        self.copy_button.clicked.connect(self.copy_answer)
-        top.addWidget(self.copy_button)
-        c.addLayout(top)
-
-        self.answer_label = label("Nothing yet", "answer")
+        top.setSpacing(12)
+        self.answer_label = label("No answer yet", "answer")
+        self.answer_label.setProperty("empty", True)
         self.answer_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.answer_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        c.addWidget(self.answer_label)
-        self.detail_label = label("Press Start, click the Codes box in Roblox, and MASSAB does the rest.", "muted",
-                                  wrap=True)
+        top.addWidget(self.answer_label, 1)
+        self.copy_button = QPushButton("Copy", objectName="small", enabled=False)
+        self.copy_button.setIcon(icon("copy", 14))
+        self.copy_button.setIconSize(QSize(14, 14))
+        self.copy_button.setToolTip("Copy the answer again")
+        self.copy_button.clicked.connect(self.copy_answer)
+        top.addWidget(self.copy_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        c.addLayout(top)
+        c.addSpacing(2)
+        self.detail_label = label("Press Start, then click the Codes box in Roblox.", "secondary", wrap=True)
+        self.detail_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         c.addWidget(self.detail_label)
-        bottom = QHBoxLayout()
-        self.stage_label = label("", "hint")
+
+        self.meta_row = QWidget()
+        meta = QHBoxLayout(self.meta_row)
+        meta.setContentsMargins(0, 16, 0, 0)
+        meta.setSpacing(8)
+        self.kind_label = label("", "chip")
+        self.paste_label = label("", "chip")
+        self.paste_label.hide()
         self.guess_label = label("", "warning")
         self.guess_label.hide()
-        bottom.addWidget(self.stage_label)
-        bottom.addStretch()
-        bottom.addWidget(self.guess_label)
-        c.addLayout(bottom)
+        self.total_label = label("", "total")
+        self.total_label.setToolTip("From the text appearing to the paste finishing")
+        meta.addWidget(self.kind_label)
+        meta.addWidget(self.paste_label)
+        meta.addWidget(self.guess_label)
+        meta.addStretch()
+        meta.addWidget(self.total_label)
+        self.meta_row.hide()
+        c.addWidget(self.meta_row)
+        self.pipeline = PipelineBar()
+        self.pipeline.hide()
+        c.addSpacing(6)
+        c.addWidget(self.pipeline)
         box.addWidget(card)
 
         log_card, log_box = self.card()
         head = QHBoxLayout()
-        head.addWidget(label("Activity", "heading"))
+        head.addWidget(label("Activity", "cardTitle"))
         head.addStretch()
         clear = QPushButton("Clear", objectName="small")
         head.addWidget(clear)
         log_box.addLayout(head)
+        log_box.addSpacing(10)
         self.log_view = QPlainTextEdit(readOnly=True, maximumBlockCount=LOG_LINES, objectName="log")
+        self.log_view.setPlaceholderText("Everything MASSAB reads, answers and pastes shows up here.")
         clear.clicked.connect(self.log_view.clear)
         log_box.addWidget(self.log_view, 1)
         box.addWidget(log_card, 1)
@@ -420,28 +510,34 @@ class Panel(QMainWindow):
         page, box = self.page()
         card, c = self.card()
         top = QHBoxLayout()
-        top.addWidget(label("Chat", "heading"))
-        top.addWidget(label("with the AI on your PC", "hint"))
-        top.addStretch()
+        top.setSpacing(8)
         facts = self.bind("chat_facts", Toggle())
-        facts.setToolTip("Look up the fact sheet when you ask about the game")
-        top.addWidget(label("Fact sheet", "muted"))
+        facts.setToolTip("Answer game questions from the fact sheet")
+        facts_label = label("Use the fact sheet", "secondary")
+        facts_label.setToolTip(facts.toolTip())
         top.addWidget(facts)
-        top.addSpacing(6)
+        top.addWidget(facts_label)
+        top.addStretch()
         new = QPushButton("New chat", objectName="small")
         new.clicked.connect(self.new_chat)
         top.addWidget(new)
         c.addLayout(top)
-        c.addWidget(separator())
+        c.addSpacing(10)
 
         self.chat_banner = QWidget()
-        banner = QHBoxLayout(self.chat_banner)
-        banner.setContentsMargins(0, 2, 0, 2)
-        self.chat_banner_text = label("", "banner", wrap=True)
-        banner.addWidget(self.chat_banner_text, 1)
+        banner = QVBoxLayout(self.chat_banner)
+        banner.setContentsMargins(0, 0, 0, 0)
+        banner.setSpacing(10)
+        banner.addWidget(separator())
+        line = QHBoxLayout()
+        line.setSpacing(12)
+        self.chat_banner_text = label("", "secondary", wrap=True)
+        line.addWidget(self.chat_banner_text, 1)
         self.chat_load_button = QPushButton("Load AI", objectName="primary")
         self.chat_load_button.clicked.connect(self.toggle_ai)
-        banner.addWidget(self.chat_load_button)
+        line.addWidget(self.chat_load_button)
+        banner.addLayout(line)
+        banner.addWidget(separator())
         c.addWidget(self.chat_banner)
 
         self.chat_scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.Shape.NoFrame)
@@ -449,8 +545,8 @@ class Panel(QMainWindow):
         self.chat_scroll.viewport().setAutoFillBackground(False)
         inner = QWidget(objectName="scrollInner")
         self.chat_list = QVBoxLayout(inner)
-        self.chat_list.setContentsMargins(2, 6, 8, 6)
-        self.chat_list.setSpacing(8)
+        self.chat_list.setContentsMargins(0, 10, 8, 10)
+        self.chat_list.setSpacing(10)
         self.chat_empty = self.build_chat_empty()
         self.chat_list.addWidget(self.chat_empty)
         self.chat_list.addStretch()
@@ -461,14 +557,14 @@ class Panel(QMainWindow):
         c.addWidget(self.chat_scroll, 1)
 
         row = QHBoxLayout()
-        row.setSpacing(8)
+        row.setSpacing(10)
         self.chat_input = ChatInput(objectName="chatInput")
-        self.chat_input.setPlaceholderText("Ask anything. Enter sends, Shift+Enter adds a line.")
-        self.chat_input.setFixedHeight(62)
+        self.chat_input.setPlaceholderText("Ask anything. Shift+Enter for a new line.")
+        self.chat_input.setFixedHeight(50)
         # Enter waits for a reply to finish; only the button stops one.
         self.chat_input.submitted.connect(lambda: self.chat_bubble is None and self.send_chat())
         self.send_button = QPushButton("Send", objectName="primary")
-        self.send_button.setFixedSize(84, 62)
+        self.send_button.setFixedSize(92, 50)
         self.send_button.clicked.connect(lambda: self.send_chat())
         row.addWidget(self.chat_input, 1)
         row.addWidget(self.send_button)
@@ -479,41 +575,56 @@ class Panel(QMainWindow):
     def build_chat_empty(self):
         empty = QWidget()
         box = QVBoxLayout(empty)
-        box.setContentsMargins(20, 26, 20, 10)
-        box.setSpacing(8)
+        box.setContentsMargins(20, 34, 20, 10)
+        box.setSpacing(0)
         logo = QLabel(alignment=Qt.AlignmentFlag.AlignCenter)
-        pixmap = orb(112, "")
-        pixmap.setDevicePixelRatio(2)
-        logo.setPixmap(pixmap)
+        logo.setPixmap(mark(48))
         box.addWidget(logo)
-        box.addWidget(label("Ask me anything", "heading"), 0, Qt.AlignmentFlag.AlignCenter)
-        hint = label("I'm the same small model that solves riddles, running on your PC. Game questions get "
-                     "facts from the fact sheet. A riddle on screen always comes first and cuts my reply short.",
-                     "hint", wrap=True)
+        box.addSpacing(16)
+        box.addWidget(label("Ask about the game", "emptyTitle"), 0, Qt.AlignmentFlag.AlignCenter)
+        box.addSpacing(6)
+        hint = label("The riddle AI, running on this PC. A riddle on screen cuts its reply short.", "secondary",
+                     wrap=True)
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         box.addWidget(hint)
-        box.addSpacing(6)
+        box.addSpacing(18)
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        row.addStretch()
         for text in SUGGESTIONS:
             button = QPushButton(text, objectName="suggestion")
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _=False, text=text: self.send_chat(text))
-            box.addWidget(button, 0, Qt.AlignmentFlag.AlignCenter)
+            row.addWidget(button)
+        row.addStretch()
+        box.addLayout(row)
         return empty
 
     def build_overlay_page(self):
         page, box = self.page(scroll=True)
+        box.addWidget(self.lock_note())
 
-        card, c = self.card("Reading area", "MASSAB only reads this part of the screen. Codes and riddles show up "
-                                            "near the top middle of the game.")
+        card, c = self.card("Reading area")
+        row = QHBoxLayout()
+        row.setSpacing(22)
         self.preview = AreaPreview()
-        c.addWidget(self.preview)
-        self.monitor_edit = self.bind("monitor", QSpinBox(minimum=1, maximum=8))
-        self.region_edit = self.bind("region", QLineEdit(placeholderText="whole monitor"))
-        self.region_edit.setMinimumWidth(170)
-        self.add_rows(c, [self.setting_row("Monitor", self.monitor_edit, "1 is your main screen"),
-                          self.setting_row("Area", self.region_edit, "x, y, width, height in pixels. Blank reads "
-                                                                     "the whole monitor.")])
+        self.preview.setFixedSize(280, 168)
+        row.addWidget(self.preview, 0, Qt.AlignmentFlag.AlignTop)
+        right = QVBoxLayout()
+        right.setSpacing(0)
+        self.monitor_edit = QComboBox()
+        self.fill_monitors()
+        self.monitor_edit.currentIndexChanged.connect(
+            lambda i: self.monitor_edit.itemData(i) is not None and self.set("monitor", self.monitor_edit.itemData(i)))
+        self.region_edit = self.bind("region", QLineEdit(placeholderText="Whole monitor"))
+        for field in (self.monitor_edit, self.region_edit):
+            field.setFixedWidth(FIELD_WIDTH + 30)
+        self.add_rows(right, [self.setting_row("Monitor", self.monitor_edit, tip="1 is your main screen"),
+                              self.setting_row("Area", self.region_edit,
+                                               tip="x, y, width, height in pixels. Blank reads the whole monitor.")])
         buttons = QHBoxLayout()
+        buttons.setContentsMargins(0, 12, 0, 0)
+        buttons.setSpacing(8)
         pick = QPushButton("Pick on screen", objectName="primary")
         pick.setToolTip("Drag a box over the part of the screen to read")
         pick.clicked.connect(self.pick_area)
@@ -522,79 +633,85 @@ class Panel(QMainWindow):
         buttons.addWidget(pick)
         buttons.addWidget(whole)
         buttons.addStretch()
-        c.addLayout(buttons)
+        right.addLayout(buttons)
+        right.addStretch()
+        row.addLayout(right, 1)
+        c.addLayout(row)
         self.area_card = card
         box.addWidget(card)
 
-        card, c = self.card("On-screen box", "Drawn over the game to show what MASSAB reads. It can't be clicked, "
-                                             "and MASSAB can't see it, so it never gets in the way.")
-        self.overlay_edit = self.bind("overlay", self.combo(OVERLAY_WHEN.items()))
-        self.color_button = QPushButton(objectName="swatch")
-        self.color_button.clicked.connect(self.pick_color)
+        columns = Columns()
+        card, c = self.card("On-screen box", "Drawn over the game. It can't be clicked, and MASSAB can't see it.")
+        self.overlay_edit = self.bind("overlay", self.segmented(OVERLAY_WHEN.items()))
+        self.swatches = Swatches(self.settings["overlay_color"])
+        self.swatches.picked.connect(lambda color: self.set("overlay_color", color))
         self.add_rows(c, [
-            self.setting_row("Show the box", self.overlay_edit),
-            self.setting_row("Mark the code and riddle zones", self.bind("overlay_zones", Toggle()),
-                             "Dashed: where code lines are found. Dotted: where riddle rows are."),
-            self.setting_row("Highlight text as it's read", self.bind("overlay_reads", Toggle()),
-                             "Only while watching"),
-            self.setting_row("Label with what it read", self.bind("overlay_labels", Toggle())),
-            self.setting_row("Color", self.color_button),
-            self.setting_row("Line width", self.bind("overlay_width", QSpinBox(minimum=1, maximum=6, suffix=" px"))),
-            self.setting_row("Opacity", self.slider("overlay_opacity", 20, 100)),
+            self.setting_row("Show", self.overlay_edit),
+            self.setting_row("Mark zones", self.bind("overlay_zones", Toggle()),
+                             tip="Dashed: where code lines are found. Dotted: where riddle rows are."),
+            self.setting_row("Highlight reads", self.bind("overlay_reads", Toggle()),
+                             tip="Box each line of text as it's read, while watching"),
+            self.setting_row("Show what it read", self.bind("overlay_labels", Toggle()),
+                             tip="Label each highlight with the text OCR made of it"),
+            self.setting_row("Color", self.swatches),
         ])
-        box.addWidget(card)
+        columns.add(card)
 
-        card, c = self.card("Game strip", "The answer, how long it took and whether it pasted, in a corner of "
-                                          "the game.")
+        card, c = self.card("Game strip", "The answer, its time and whether it pasted, in a corner of the game.")
         self.hud_edit = self.bind("hud", Toggle())
         self.add_rows(c, [
-            self.setting_row("Show the strip", self.hud_edit),
-            self.setting_row("Position", self.bind("hud_corner", self.combo((corner, corner.capitalize()) for corner in HUD_CORNERS))),
-            self.setting_row("Size", self.bind("hud_size", self.combo((size, size.capitalize()) for size in HUD_SIZES))),
-            self.setting_row("Background", self.slider("hud_opacity", 0, 100), "How solid its glass is"),
+            self.setting_row("Show", self.hud_edit),
+            self.setting_row("Corner", self.bind("hud_corner", self.combo((corner, corner.capitalize())
+                                                                          for corner in HUD_CORNERS))),
+            self.setting_row("Size", self.bind("hud_size", self.segmented((size, size.capitalize())
+                                                                          for size in HUD_SIZES))),
+            self.setting_row("Background", self.slider("hud_opacity", 0, 100), tip="How solid its glass is"),
         ])
-        box.addWidget(card)
+        columns.add(card)
+        box.addWidget(columns)
         box.addStretch()
-        self.show_color()
         return page
 
     def build_settings_page(self):
         page, box = self.page(scroll=True)
-        self.lock_note = label("Stop watching to change the greyed-out settings.", "warning")
-        self.lock_note.hide()
-        box.addWidget(self.lock_note, 0, Qt.AlignmentFlag.AlignLeft)
+        box.addWidget(self.lock_note())
 
+        columns = Columns()
         card, c = self.card("Codes")
-        self.words_edit = self.bind("words", QSpinBox(minimum=0, maximum=10))
-        self.gap_edit = self.bind("end_gap", QDoubleSpinBox(minimum=1, maximum=30, suffix=" s"))
-        self.add_rows(c, [self.setting_row("Copy a code after this many words", self.words_edit,
-                                           "It's updated if more come. 0 waits for the whole code."),
-                          self.setting_row("A code ends after this long", self.gap_edit,
-                                           "With no new word in that time")])
+        self.words_edit = self.bind("words", QSpinBox(minimum=0, maximum=10, suffix=" words", specialValueText="Whole code"))
+        self.gap_edit = self.bind("end_gap", QDoubleSpinBox(minimum=1, maximum=30, suffix=" s", decimals=1))
+        self.add_rows(c, [self.setting_row("Copy after", self.words_edit,
+                                           tip="Copied once this many words are in, and updated if more come. "
+                                               "Whole code waits for the end."),
+                          self.setting_row("Code ends after", self.gap_edit, tip="With no new word in that time")])
         self.codes_card = card
-        box.addWidget(card)
+        columns.add(card)
 
         card, c = self.card("Pasting")
         self.paste_edit = self.bind("paste", Toggle())
         self.window_edit = self.bind("paste_window", QLineEdit())
-        self.window_edit.setMinimumWidth(150)
         self.delay_edit = self.bind("key_delay_ms", QSpinBox(minimum=5, maximum=60, suffix=" ms"))
-        self.add_rows(c, [self.setting_row("Paste automatically", self.paste_edit, "Otherwise answers are only copied"),
-                          self.setting_row("Only paste into the window titled", self.window_edit),
-                          self.setting_row("Wait after each pasted key", self.delay_edit,
-                                           "Raise it if pastes go missing or come out wrong")])
+        for field in (self.words_edit, self.gap_edit, self.window_edit, self.delay_edit):
+            field.setFixedWidth(FIELD_WIDTH)
+        self.add_rows(c, [self.setting_row("Paste automatically", self.paste_edit, tip="Off: answers are only copied"),
+                          self.setting_row("Paste into", self.window_edit,
+                                           tip="Only pastes while the active window has exactly this title"),
+                          self.setting_row("Wait after each key", self.delay_edit, "Raise it if pastes go missing")])
         self.paste_card = card
-        box.addWidget(card)
+        columns.add(card)
+        box.addWidget(columns)
 
         card, c = self.card("AI")
-        self.model_edit = self.bind("model", self.combo((m, MODEL_NAMES.get(m, m)) for m in MODELS))
+        self.model_edit = self.bind("model", self.segmented((m, MODEL_NAMES.get(m, m)) for m in MODELS))
         facts = QPushButton("Open")
         facts.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(FACTS_PATH)))
-        self.add_rows(c, [self.setting_row("Model", self.model_edit, "The 2B one needs: setup_ai.py --model 2b"),
-                          self.setting_row("Load the AI when MASSAB opens", self.bind("ai_autoload", Toggle()),
-                                           "So the first riddle doesn't wait for it"),
-                          self.setting_row("Fact sheet", facts, "What riddle and chat answers come from. Changes "
-                                                                "apply the next time the AI loads.")])
+        self.add_rows(c, [self.setting_row("Model", self.model_edit,
+                                           tip="4B gives the best answers. 2B uses less VRAM, and needs "
+                                               "setup_ai.py --model 2b"),
+                          self.setting_row("Load when MASSAB opens", self.bind("ai_autoload", Toggle()),
+                                           tip="So the first riddle doesn't wait for it"),
+                          self.setting_row("Fact sheet", facts, "Changes apply the next time the AI loads",
+                                           tip="Where riddle and chat answers come from")])
         box.addWidget(card)
         box.addStretch()
         return page
@@ -607,14 +724,19 @@ class Panel(QMainWindow):
             widget.addItem(text, value)
         return widget
 
+    def segmented(self, items):
+        return Segmented((text, value) for value, text in items)
+
     def slider(self, key, low, high):
         holder = QWidget()
         row = QHBoxLayout(holder)
         row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(10)
         slider = QSlider(Qt.Orientation.Horizontal, minimum=low, maximum=high)
-        slider.setFixedWidth(150)
-        value = label("", "muted")
-        value.setFixedWidth(36)
+        slider.setFixedWidth(130)
+        value = label("", "secondary")
+        value.setFixedWidth(38)
+        value.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         slider.valueChanged.connect(lambda v: value.setText(f"{v}%"))
         self.bind(key, slider)
         value.setText(f"{slider.value()}%")
@@ -632,7 +754,10 @@ class Panel(QMainWindow):
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox, QSlider)):
             widget.setValue(value)
             widget.valueChanged.connect(lambda v: self.set(key, v))
-        elif isinstance(widget, QComboBox):
+            edit = widget.findChild(QLineEdit)
+            if edit is not None:
+                edit.setTextMargins(6, 0, 0, 0)     # line the number up with the text in other fields
+        elif isinstance(widget, (QComboBox, Segmented)):
             widget.setCurrentIndex(max(0, widget.findData(value)))
             widget.currentIndexChanged.connect(lambda i: self.set(key, widget.itemData(i)))
         elif isinstance(widget, QLineEdit):
@@ -670,7 +795,8 @@ class Panel(QMainWindow):
             bad = True
         self.region_edit.setProperty("invalid", bad)
         self.region_edit.style().polish(self.region_edit)
-        self.region_edit.setToolTip("Should look like 0,120,1280,720" if bad else "")
+        self.region_edit.setToolTip("Should look like 0,120,1280,720" if bad else
+                                    "x, y, width, height in pixels. Blank reads the whole monitor.")
 
     def use_area(self, text):
         self.region_edit.setText(text)
@@ -691,25 +817,27 @@ class Panel(QMainWindow):
         self.log(f"Reading area set to {text}.")
         self.activateWindow()
 
-    def pick_color(self):
-        color = QColorDialog.getColor(self.settings["overlay_color"], self, "Box color")
-        if color.isValid():
-            self.set("overlay_color", color.name())
-            self.show_color()
-
-    def show_color(self):
-        self.color_button.setStyleSheet(
-            f"QPushButton#swatch {{ background: {self.settings['overlay_color']}; border: 1px solid #4f7394;"
-            f" border-radius: 8px; min-width: 54px; min-height: 20px; }}")
-
     def find_monitors(self):
         try:
             return monitor_rects()
         except Exception:   # no capture at all, e.g. a remote session
             return []
 
+    def fill_monitors(self):
+        """One item per monitor, with its size, plus the saved one if it isn't plugged in."""
+        combo, chosen = self.monitor_edit, self.settings["monitor"]
+        combo.blockSignals(True)
+        combo.clear()
+        for n, (_, _, w, h) in enumerate(self.monitors[1:], start=1):
+            combo.addItem(f"{n}  ·  {w} × {h}", n)
+        if combo.findData(chosen) < 0:
+            combo.addItem(f"{chosen}  ·  not connected", chosen)
+        combo.setCurrentIndex(combo.findData(chosen))
+        combo.blockSignals(False)
+
     def screens_changed(self, *_):
         self.monitors = self.find_monitors()
+        self.fill_monitors()
         self.style_hud()
         self.update_overlay()
 
@@ -731,7 +859,7 @@ class Panel(QMainWindow):
         if area is None:
             caption = "Area isn't valid" if monitor else "No such monitor"
         else:
-            caption = f"{area[2]} x {area[3]}" + ("" if s["region"] else f"  ·  monitor {s['monitor']}")
+            caption = f"{area[2]} × {area[3]}" + ("" if s["region"] else f"  ·  monitor {s['monitor']}")
         self.preview.set_state(monitor, area, s["overlay_color"], caption)
         self.overlay.set_look(s["overlay_color"], s["overlay_width"], s["overlay_opacity"], s["overlay_zones"],
                               s["overlay_labels"])
@@ -783,11 +911,15 @@ class Panel(QMainWindow):
         self.watching = watching
         for widget in (self.codes_card, self.paste_card, self.area_card, self.model_edit):
             widget.setEnabled(not watching)
-        self.lock_note.setVisible(watching)
+        for note in self.lock_notes:
+            note.setVisible(watching)
         self.start_button.setText("Stop" if watching else "Start")
         self.start_button.setProperty("running", watching)
         self.start_button.style().polish(self.start_button)
-        self.status_label.setText("Watching for codes and riddles" if watching else "Stopped")
+        self.status_label.setText("Watching" if watching else "Stopped")
+        self.status_label.setProperty("live", watching)
+        self.status_label.style().polish(self.status_label)
+        self.status_light.set("", "green" if watching else "gray")
         self.update_overlay()
 
     # --- the AI ---------------------------------------------------------------
@@ -819,14 +951,15 @@ class Panel(QMainWindow):
     def show_ai(self, state):
         self.ai_state = state
         if state == "off" and not ai_installed(self.settings["model"]):
-            text, button, light = "AI not installed (about 3 GB)", "Install AI", "gray"
+            text, button, light = "AI not installed", "Install AI", "gray"
         else:
             text, button, light = {"off": ("AI off", "Load AI", "gray"), "ready": ("AI ready", "Unload AI", "green"),
                                    "loading": ("AI loading", "Load AI", "amber"),
-                                   "installing": ("AI downloading", "Install AI", "amber")}[state]
+                                   "installing": ("Downloading AI", "Install AI", "amber")}[state]
         self.ai_label.setText(text)
         self.ai_light.set("", light)
         self.ai_button.setText(button)
+        self.ai_button.setToolTip("About a 3 GB download" if button == "Install AI" else "")
         self.ai_button.setEnabled(state in ("off", "ready"))
         if state != "ready":
             self.stop_chat("the AI was unloaded")
@@ -842,7 +975,8 @@ class Panel(QMainWindow):
             return
         used, total = memory
         low = total - used < LOW_VRAM_MIB
-        self.vram_label.setText(f"VRAM {used / 1024:.1f} of {total / 1024:.1f} GB" + (", running low" if low else ""))
+        self.vram_label.setText(f"VRAM {'low, ' if low else ''}{used / 1024:.1f} of {total / 1024:.1f} GB")
+        self.vram_label.setToolTip("The game and the AI share it. Close something if riddles slow down." if low else "")
         self.vram_bar.setMaximum(total)
         self.vram_bar.setValue(used)
         self.vram_bar.setProperty("low", low)
@@ -860,12 +994,12 @@ class Panel(QMainWindow):
         else:
             installed = ai_installed(self.settings["model"])
             self.chat_banner_text.setText("Load the AI to start chatting." if installed else
-                                          "Chatting needs the AI, which is about a 3 GB download.")
+                                          "Chat needs the AI, which is about a 3 GB download.")
             self.chat_load_button.setText("Load AI" if installed else "Install AI")
             self.chat_load_button.show()
 
     def bubble_width(self):
-        return max(240, int(self.chat_scroll.viewport().width() * 0.8))
+        return max(240, int(self.chat_scroll.viewport().width() * 0.78))
 
     def set_bubble_text(self, bubble, text):
         """Word-wrapped labels guess a narrow width, so size the bubble from the text itself."""
@@ -877,7 +1011,7 @@ class Panel(QMainWindow):
             doc.setMarkdown(text)
         else:
             doc.setPlainText(text)
-        limit = self.bubble_width() - 26
+        limit = self.bubble_width() - 32
         doc.setTextWidth(limit)
         bubble.text.setMinimumWidth(min(limit, int(doc.idealWidth()) + 4))
         bubble.setMaximumWidth(self.bubble_width())
@@ -886,7 +1020,7 @@ class Panel(QMainWindow):
         self.chat_empty.hide()
         bubble = QFrame(objectName="bubbleUser" if role == "user" else "bubbleAi")
         inner = QVBoxLayout(bubble)
-        inner.setContentsMargins(12, 8, 12, 8)
+        inner.setContentsMargins(15, 10, 15, 10)
         bubble.text = QLabel(wordWrap=True)
         bubble.text.setTextFormat(Qt.TextFormat.PlainText if role == "user" else Qt.TextFormat.MarkdownText)
         bubble.text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -979,6 +1113,7 @@ class Panel(QMainWindow):
         self.chat_job += 1
         self.chat_history.clear()
         for holder, _ in self.bubbles:
+            holder.hide()
             holder.deleteLater()
         self.bubbles.clear()
         self.chat_empty.show()
@@ -988,24 +1123,44 @@ class Panel(QMainWindow):
     # --- events ---------------------------------------------------------------
 
     def log(self, text):
-        self.log_view.appendPlainText(f"{time.strftime('%H:%M:%S')}  {text}")
+        self.log_view.appendHtml(f'<span style="color:{TEXT3}">{time.strftime("%H:%M:%S")}</span>&nbsp;&nbsp;'
+                                 f'<span style="white-space:pre-wrap">{html.escape(text)}</span>')
 
-    def show_answer(self, text, kind, detail="", stage="", guess=""):
+    def show_answer(self, text, kind, detail="", times=None, total=None, guess="", pasted=None):
+        """times is (read, ai, paste) in seconds, for the bar under a riddle's answer.
+        pasted None leaves the paste chip as it was, for an answer that didn't change."""
         self.answer_label.setText(text)
+        self.answer_label.setProperty("empty", False)
+        self.answer_label.style().polish(self.answer_label)
         self.fit_answer()
         self.kind_label.setText(kind)
         self.kind_label.setVisible(bool(kind))
+        if pasted is not None:
+            self.paste_label.setText("Pasted" if pasted else "Copied")
+            self.paste_label.setProperty("tone", "good" if pasted else "plain")
+            self.paste_label.style().polish(self.paste_label)
+            self.paste_label.show()
         self.detail_label.setText(detail)
-        self.stage_label.setText(stage)
+        self.detail_label.setVisible(bool(detail))
+        self.total_label.setText(f"{total:.2f} s" if total is not None else "")
+        self.total_label.setVisible(total is not None)
         self.guess_label.setText(guess)
         self.guess_label.setVisible(bool(guess))
+        self.meta_row.show()
+        if times:
+            self.pipeline.show()
+            self.pipeline.set_times(*times)
+        else:
+            self.pipeline.clear()
+            self.pipeline.hide()
         self.copy_button.setEnabled(True)
 
     def fit_answer(self):
         """Shrink a long answer until it fits, rather than cutting it off."""
         text, width = self.answer_label.text(), max(120, self.answer_label.width())
         font = self.answer_label.font()
-        for size in range(24, 10, -1):
+        biggest, smallest = ANSWER_PT
+        for size in range(biggest, smallest - 1, -1):
             font.setPointSize(size)
             if QFontMetrics(font).horizontalAdvance(text) <= width:
                 break
@@ -1020,7 +1175,9 @@ class Panel(QMainWindow):
             self.log(f"Building: {e['code']}")
             self.hud.show_result(e["code"], "CODE", state="building")
         elif kind == "code":
-            self.show_answer(e["code"], "CODE", note_text(e["note"]))
+            # The chip says whether it pasted; the line below only explains a paste that didn't happen.
+            note = note_text(e["note"])
+            self.show_answer(e["code"], "CODE", note if ":" in note else "", pasted=was_pasted(e["note"]))
             self.log(f"Code: {e['code']}{e['note']}")
             self.hud.show_result(e["code"], "CODE", state="pasted" if was_pasted(e["note"]) else "copied")
         elif kind == "done":
@@ -1028,6 +1185,7 @@ class Panel(QMainWindow):
         elif kind == "riddle":
             self.log(f"Riddle: {e['text']}")
             self.detail_label.setText(e["text"])
+            self.detail_label.show()
             self.hud.show_result("Solving", "RIDDLE")
         elif kind == "answer":
             self.on_answer(e)
@@ -1058,13 +1216,12 @@ class Panel(QMainWindow):
     def on_answer(self, e):
         solved, total, paste = e["solved"], e["total"], e["paste"]
         read = max(0.0, total - solved.seconds - paste)
-        stage = f"{total:.2f} s total  ·  read {read:.2f}  ·  AI {solved.seconds:.2f}  ·  paste {paste:.2f}"
         guess = "Guess: no fact matched this riddle" if solved.guess else ""
-        self.show_answer(solved.answer, "RIDDLE", solved.riddle, stage, guess)
+        self.show_answer(solved.answer, "RIDDLE", solved.riddle, (read, solved.seconds, paste), total, guess,
+                         None if e["unchanged"] else was_pasted(e["note"]))
         self.log(f"Answer: {solved.answer}{e['note']}  [{total:.2f} s]" + ("  (guess)" if solved.guess else ""))
         state = "same" if e["unchanged"] else "pasted" if was_pasted(e["note"]) else "copied"
-        self.hud.show_result(solved.answer, "RIDDLE", f"{total:.2f}s", "GUESS" if solved.guess else state,
-                             solved.guess)
+        self.hud.show_result(solved.answer, "RIDDLE", f"{total:.2f}s", state, solved.guess)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -1119,10 +1276,8 @@ def main():
     if "--check" in sys.argv:
         return check()
     app = QApplication(sys.argv)
-    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
-    app.setStyle("Fusion")
-    app.setStyleSheet(style_sheet())
-    app.setWindowIcon(QIcon(orb(64)))
+    apply(app)
+    app.setWindowIcon(QIcon(mark(64)))
     panel = Panel(load_settings())
     panel.show()
     # A riddle can't wait for the model to load, so start on that right away.

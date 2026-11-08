@@ -1,0 +1,902 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T16:12:14+00:00",
+  "title": "Design System: MASSAB",
+  "extensions": {
+    "colorMeta": {
+      "accent-blue": {
+        "role": "primary",
+        "displayName": "Electric Blue",
+        "canonical": "#4d7cff",
+        "oklch": "oklch(62.4% 0.202 265.9)",
+        "tonalRamp": [
+          "#010232",
+          "#091b5f",
+          "#1c3890",
+          "#3156c4",
+          "#4977f8",
+          "#7ba1fd",
+          "#b1c9fd",
+          "#e7effe"
+        ]
+      },
+      "accent-light": {
+        "role": "primary",
+        "displayName": "Periwinkle Light",
+        "canonical": "#7c9dff",
+        "oklch": "oklch(71.4% 0.148 268.4)",
+        "tonalRamp": [
+          "#030628",
+          "#132050",
+          "#2a3c7c",
+          "#435baa",
+          "#5e7cda",
+          "#84a1f5",
+          "#b4c8fd",
+          "#e8eefe"
+        ]
+      },
+      "gradient-bright": {
+        "role": "primary",
+        "displayName": "Bright Periwinkle",
+        "canonical": "#6a93ff",
+        "oklch": "oklch(68.4% 0.166 266.4)",
+        "tonalRamp": [
+          "#01052b",
+          "#0e1f55",
+          "#243c82",
+          "#3b5ab3",
+          "#557be4",
+          "#7ca1fe",
+          "#b2c9fe",
+          "#e7effe"
+        ]
+      },
+      "gradient-deep": {
+        "role": "primary",
+        "displayName": "Deep Cobalt",
+        "canonical": "#3a5ef0",
+        "oklch": "oklch(54.8% 0.222 267.5)",
+        "tonalRamp": [
+          "#020132",
+          "#0b1765",
+          "#1d3498",
+          "#3252cd",
+          "#4f76f7",
+          "#7fa1fc",
+          "#b3c8fc",
+          "#e8eefe"
+        ]
+      },
+      "chip-ink-blue": {
+        "role": "primary",
+        "displayName": "Ice Blue Ink",
+        "canonical": "#c9d6ff",
+        "oklch": "oklch(88.0% 0.059 271.3)",
+        "tonalRamp": [
+          "#070a17",
+          "#1f2437",
+          "#394159",
+          "#56607f",
+          "#7581a6",
+          "#99a4c5",
+          "#bfc8e6",
+          "#e9eefe"
+        ]
+      },
+      "stage-violet": {
+        "role": "secondary",
+        "displayName": "Stage Violet",
+        "canonical": "#8a6bff",
+        "oklch": "oklch(63.4% 0.210 288.6)",
+        "tonalRamp": [
+          "#0d012a",
+          "#270e5d",
+          "#43298e",
+          "#6245c1",
+          "#8263f5",
+          "#a294fa",
+          "#c6c1fc",
+          "#edecfe"
+        ]
+      },
+      "stage-cyan": {
+        "role": "secondary",
+        "displayName": "Stage Cyan",
+        "canonical": "#3cc8ff",
+        "oklch": "oklch(78.3% 0.139 229.4)",
+        "tonalRamp": [
+          "#000d15",
+          "#032938",
+          "#004962",
+          "#196a89",
+          "#208eb8",
+          "#43b3e1",
+          "#7fd6fe",
+          "#dcf3fe"
+        ]
+      },
+      "signal-green": {
+        "role": "tertiary",
+        "displayName": "Live Green",
+        "canonical": "#2fd38a",
+        "oklch": "oklch(76.9% 0.168 158.1)",
+        "tonalRamp": [
+          "#000f06",
+          "#012e19",
+          "#0d4f31",
+          "#167349",
+          "#1a9a63",
+          "#41c082",
+          "#7fe1ab",
+          "#c6fedc"
+        ]
+      },
+      "signal-amber": {
+        "role": "tertiary",
+        "displayName": "Guess Amber",
+        "canonical": "#ffb547",
+        "oklch": "oklch(82.4% 0.149 73.3)",
+        "tonalRamp": [
+          "#130900",
+          "#342002",
+          "#5b3a00",
+          "#815816",
+          "#ad761d",
+          "#d5973d",
+          "#f4be77",
+          "#feebd3"
+        ]
+      },
+      "signal-red": {
+        "role": "tertiary",
+        "displayName": "Stop Red",
+        "canonical": "#ff5a6e",
+        "oklch": "oklch(69.2% 0.200 17.0)",
+        "tonalRamp": [
+          "#1d0104",
+          "#4a0513",
+          "#7e0524",
+          "#ae213c",
+          "#df3d56",
+          "#fe717e",
+          "#fcb3b5",
+          "#ffe8e9"
+        ]
+      },
+      "strip-green": {
+        "role": "tertiary",
+        "displayName": "Strip Green",
+        "canonical": "#4ee6a0",
+        "oklch": "oklch(82.8% 0.163 159.3)",
+        "tonalRamp": [
+          "#000f06",
+          "#022d1b",
+          "#0e4e32",
+          "#18734b",
+          "#1e9965",
+          "#42bf85",
+          "#80e1ae",
+          "#c7fede"
+        ]
+      },
+      "strip-amber": {
+        "role": "tertiary",
+        "displayName": "Strip Amber",
+        "canonical": "#ffc35c",
+        "oklch": "oklch(85.2% 0.137 78.6)",
+        "tonalRamp": [
+          "#120900",
+          "#332100",
+          "#573c07",
+          "#7f590e",
+          "#aa780f",
+          "#cd9b46",
+          "#edc27d",
+          "#ffeccf"
+        ]
+      },
+      "chip-ink-green": {
+        "role": "tertiary",
+        "displayName": "Mint Chip Ink",
+        "canonical": "#93f0c4",
+        "oklch": "oklch(88.5% 0.109 162.6)",
+        "tonalRamp": [
+          "#010f07",
+          "#042d1d",
+          "#034f35",
+          "#1e7251",
+          "#38966f",
+          "#6bb894",
+          "#9adaba",
+          "#c8fde2"
+        ]
+      },
+      "chip-ink-amber": {
+        "role": "tertiary",
+        "displayName": "Apricot Chip Ink",
+        "canonical": "#ffd08a",
+        "oklch": "oklch(88.3% 0.102 76.8)",
+        "tonalRamp": [
+          "#130900",
+          "#332104",
+          "#583c05",
+          "#7e5a1c",
+          "#a47a34",
+          "#c49e64",
+          "#e5c393",
+          "#feecd2"
+        ]
+      },
+      "chip-ink-red": {
+        "role": "tertiary",
+        "displayName": "Rose Chip Ink",
+        "canonical": "#ffc6cd",
+        "oklch": "oklch(87.9% 0.066 10.3)",
+        "tonalRamp": [
+          "#160608",
+          "#361d20",
+          "#59373c",
+          "#7e545a",
+          "#a57279",
+          "#c5979d",
+          "#e6bdc2",
+          "#fde9eb"
+        ]
+      },
+      "stop-ink": {
+        "role": "tertiary",
+        "displayName": "Stop Ink",
+        "canonical": "#ffd9de",
+        "oklch": "oklch(91.9% 0.043 9.0)",
+        "tonalRamp": [
+          "#130809",
+          "#302022",
+          "#513b3e",
+          "#75595d",
+          "#9a787d",
+          "#bb9ca0",
+          "#dcc1c5",
+          "#ffe8eb"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Moon White",
+        "canonical": "#f3f5ff",
+        "oklch": "oklch(97.2% 0.013 277.1)",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#242529",
+          "#404247",
+          "#5f6168",
+          "#80828b",
+          "#a3a4ac",
+          "#c7c9d0",
+          "#edeef4"
+        ]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Lavender Gray",
+        "canonical": "#aab3d8",
+        "oklch": "oklch(77.2% 0.054 274.4)",
+        "tonalRamp": [
+          "#080a16",
+          "#202435",
+          "#3b4157",
+          "#59607c",
+          "#7880a3",
+          "#9ca3c3",
+          "#c1c8e3",
+          "#e9eeff"
+        ]
+      },
+      "ink-tertiary": {
+        "role": "neutral",
+        "displayName": "Dusk Gray",
+        "canonical": "#858fb6",
+        "oklch": "oklch(65.6% 0.059 273.5)",
+        "tonalRamp": [
+          "#080a17",
+          "#1f2437",
+          "#3a405a",
+          "#575f7f",
+          "#7780a6",
+          "#9aa3c6",
+          "#c0c8e6",
+          "#e9eeff"
+        ]
+      },
+      "log-ink": {
+        "role": "neutral",
+        "displayName": "Log Ink",
+        "canonical": "#cdd3f0",
+        "oklch": "oklch(87.1% 0.041 276.3)",
+        "tonalRamp": [
+          "#090a13",
+          "#222431",
+          "#3d4152",
+          "#5b6076",
+          "#7b819b",
+          "#9fa4bb",
+          "#c4c8dd",
+          "#eaeefd"
+        ]
+      },
+      "dim-slate": {
+        "role": "neutral",
+        "displayName": "Dim Slate",
+        "canonical": "#5d6690",
+        "oklch": "oklch(52.0% 0.067 274.5)",
+        "tonalRamp": [
+          "#070a19",
+          "#1f2339",
+          "#3a405d",
+          "#575f83",
+          "#7680ab",
+          "#9aa3ca",
+          "#bfc7ea",
+          "#e9eeff"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Midnight Ground",
+        "canonical": "#0b1140",
+        "oklch": "oklch(21.0% 0.089 270.8)",
+        "tonalRamp": [
+          "#06091d",
+          "#1b233f",
+          "#354065",
+          "#515f8e",
+          "#6f7fb7",
+          "#93a3d6",
+          "#b9c8f4",
+          "#e9eefe"
+        ]
+      },
+      "popup": {
+        "role": "neutral",
+        "displayName": "Popup Navy",
+        "canonical": "#151b48",
+        "oklch": "oklch(24.7% 0.084 273.0)",
+        "tonalRamp": [
+          "#06091c",
+          "#1d233e",
+          "#373f63",
+          "#535e8b",
+          "#727fb4",
+          "#96a3d3",
+          "#bcc7f2",
+          "#e9eeff"
+        ]
+      },
+      "backdrop-top": {
+        "role": "neutral",
+        "displayName": "Backdrop Indigo",
+        "canonical": "#0d1546",
+        "oklch": "oklch(22.6% 0.092 270.1)",
+        "tonalRamp": [
+          "#05091d",
+          "#1b2340",
+          "#344066",
+          "#4f5f8f",
+          "#6d7fb9",
+          "#92a3d7",
+          "#b8c8f6",
+          "#e8eeff"
+        ]
+      },
+      "backdrop-mid": {
+        "role": "neutral",
+        "displayName": "Backdrop Navy",
+        "canonical": "#080c2a",
+        "oklch": "oklch(17.3% 0.061 272.4)",
+        "tonalRamp": [
+          "#070a17",
+          "#1f2437",
+          "#3a415a",
+          "#576080",
+          "#7680a7",
+          "#9aa4c7",
+          "#bfc8e7",
+          "#e9eeff"
+        ]
+      },
+      "backdrop-floor": {
+        "role": "neutral",
+        "displayName": "Backdrop Floor",
+        "canonical": "#04061a",
+        "oklch": "oklch(13.5% 0.045 272.7)",
+        "tonalRamp": [
+          "#080b14",
+          "#202432",
+          "#3c4154",
+          "#596078",
+          "#79819e",
+          "#9da4be",
+          "#c2c8df",
+          "#e9eefd"
+        ]
+      },
+      "glow-blue": {
+        "role": "neutral",
+        "displayName": "Glow Blue",
+        "canonical": "#2f5bff",
+        "oklch": "oklch(55.2% 0.247 266.2)",
+        "tonalRamp": [
+          "#010232",
+          "#06126c",
+          "#1530a1",
+          "#284ed9",
+          "#4a77f7",
+          "#7ca1fc",
+          "#b2c9fc",
+          "#e8effe"
+        ]
+      },
+      "glow-violet": {
+        "role": "neutral",
+        "displayName": "Glow Violet",
+        "canonical": "#7b3cff",
+        "oklch": "oklch(55.8% 0.263 289.7)",
+        "tonalRamp": [
+          "#0d012a",
+          "#290464",
+          "#48169f",
+          "#6732d7",
+          "#8561f5",
+          "#a493fb",
+          "#c7c1fc",
+          "#eeecfe"
+        ]
+      },
+      "glow-azure": {
+        "role": "neutral",
+        "displayName": "Glow Azure",
+        "canonical": "#0090ff",
+        "oklch": "oklch(64.9% 0.193 251.8)",
+        "tonalRamp": [
+          "#000b1d",
+          "#012549",
+          "#0a4377",
+          "#1362ab",
+          "#1684e5",
+          "#58a9ff",
+          "#a2cdfe",
+          "#e3f0fe"
+        ]
+      },
+      "glass-panel": {
+        "role": "neutral",
+        "displayName": "Panel Glass",
+        "canonical": "rgba(12, 17, 50, 0.55)",
+        "oklch": "oklch(19.6% 0.065 272.4)",
+        "tonalRamp": [
+          "#070a18",
+          "#1e2438",
+          "#39405c",
+          "#565f82",
+          "#7580aa",
+          "#99a3c9",
+          "#bec8e9",
+          "#e9eefe"
+        ]
+      },
+      "glass-rail": {
+        "role": "neutral",
+        "displayName": "Rail Glass",
+        "canonical": "rgba(14, 19, 56, 0.59)",
+        "oklch": "oklch(20.8% 0.072 272.7)",
+        "tonalRamp": [
+          "#070a19",
+          "#1e233a",
+          "#38405e",
+          "#555f85",
+          "#7480ad",
+          "#98a3cc",
+          "#bdc8ec",
+          "#e9eefe"
+        ]
+      },
+      "glass-hero": {
+        "role": "neutral",
+        "displayName": "Hero Glass",
+        "canonical": "rgba(14, 20, 60, 0.55)",
+        "oklch": "oklch(21.5% 0.077 271.8)",
+        "tonalRamp": [
+          "#060a1a",
+          "#1d233c",
+          "#374060",
+          "#545f88",
+          "#7280b1",
+          "#96a3cf",
+          "#bcc8ee",
+          "#e9eefe"
+        ]
+      },
+      "well": {
+        "role": "neutral",
+        "displayName": "Inset Well",
+        "canonical": "rgba(0, 0, 0, 0.25)",
+        "oklch": "oklch(0.0% 0.000 0.0)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "strip-glass-top": {
+        "role": "neutral",
+        "displayName": "Strip Glass Top",
+        "canonical": "#1c2456",
+        "oklch": "oklch(28.5% 0.090 272.5)",
+        "tonalRamp": [
+          "#06091d",
+          "#1c2340",
+          "#363f66",
+          "#525e8e",
+          "#707fb8",
+          "#94a2d6",
+          "#bac7f5",
+          "#e9eeff"
+        ]
+      },
+      "strip-glass-floor": {
+        "role": "neutral",
+        "displayName": "Strip Glass Floor",
+        "canonical": "#080b22",
+        "oklch": "oklch(16.3% 0.048 274.0)",
+        "tonalRamp": [
+          "#080a15",
+          "#202433",
+          "#3c4155",
+          "#59607a",
+          "#79819f",
+          "#9da4c0",
+          "#c2c8e0",
+          "#e9eefe"
+        ]
+      },
+      "tag-glass": {
+        "role": "neutral",
+        "displayName": "Tag Glass",
+        "canonical": "rgba(10, 14, 40, 0.88)",
+        "oklch": "oklch(17.8% 0.053 273.2)",
+        "tonalRamp": [
+          "#080a16",
+          "#202435",
+          "#3b4157",
+          "#58607c",
+          "#7881a3",
+          "#9ba4c2",
+          "#c1c8e3",
+          "#e9eefe"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The last answer only; 30pt shrinking to 11pt to fit."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page title in the header."
+      },
+      "title-large": {
+        "displayName": "Title Large",
+        "purpose": "Answer total time and the chat empty-state title."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "The MASSAB wordmark beside the mark."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Glass panel titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "App default: setting names, chat, secondary lines; nav tabs in Semibold."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, status capsule, Segmented choices; 10.5pt on Start."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Hints, VRAM label, answer-bar legend."
+      },
+      "chip": {
+        "displayName": "Chip",
+        "purpose": "Kind and paste chips; 9pt on guess and lock-note chips."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "The activity log only."
+      }
+    },
+    "gradients": [
+      {
+        "name": "accent-gradient",
+        "value": "linear-gradient(135deg, #6a93ff, #3a5ef0)",
+        "purpose": "Primary buttons, Start, toggle on, user chat bubbles."
+      },
+      {
+        "name": "accent-gradient-hover",
+        "value": "linear-gradient(135deg, #82a5ff, #4a6cff)",
+        "purpose": "Primary hover."
+      },
+      {
+        "name": "accent-gradient-pressed",
+        "value": "linear-gradient(135deg, #5279f2, #314fd8)",
+        "purpose": "Primary pressed."
+      },
+      {
+        "name": "backdrop",
+        "value": "radial-gradient(circle at 6% -2%, rgba(47,91,255,0.62), rgba(47,91,255,0.22) 30%, transparent 66%), radial-gradient(circle at 97% 12%, rgba(123,60,255,0.42), rgba(123,60,255,0.15) 22%, transparent 48%), radial-gradient(circle at 55% 110%, rgba(0,144,255,0.26), rgba(0,144,255,0.09) 28%, transparent 62%), linear-gradient(135deg, #0d1546, #080c2a 55%, #04061a)",
+        "purpose": "The window backdrop (glow radii are fractions of the longer side); a 128px grayscale grain tile overlays it at 2.8% opacity."
+      },
+      {
+        "name": "glass-sheen-panel",
+        "value": "linear-gradient(rgba(255,255,255,0.085), rgba(255,255,255,0.035))",
+        "purpose": "White sheen over panel glass. Rail: 0.10 to 0.04. Hero: 0.10 to 0.035."
+      },
+      {
+        "name": "glass-rim",
+        "value": "linear-gradient(135deg, rgba(255,255,255,0.31), rgba(255,255,255,0.09) 45%, rgba(255,255,255,0.05))",
+        "purpose": "1px painted rim on every glass panel; the hero's starts at rgba(170,195,255,0.47)."
+      },
+      {
+        "name": "hero-light",
+        "value": "radial-gradient(circle at 12% 0%, rgba(77,124,255,0.27), rgba(77,124,255,0.05) 45%, transparent 75%)",
+        "purpose": "Accent wash on the answer panel only."
+      },
+      {
+        "name": "rail-pill",
+        "value": "linear-gradient(135deg, rgba(106,147,255,0.31), rgba(58,94,240,0.20))",
+        "purpose": "The sliding nav pill; rim rgba(170,195,255,0.51) to rgba(120,150,255,0.12)."
+      },
+      {
+        "name": "segmented-pill",
+        "value": "linear-gradient(135deg, rgba(106,147,255,0.43), rgba(58,94,240,0.35))",
+        "purpose": "The Segmented control's chosen pill; rim rgba(150,178,255,0.43)."
+      },
+      {
+        "name": "strip-glass",
+        "value": "linear-gradient(rgba(28,36,86,0.85), rgba(8,11,34,0.85))",
+        "purpose": "The strip at the default 85% opacity; alpha follows the player's setting."
+      },
+      {
+        "name": "mark",
+        "value": "linear-gradient(135deg, #6f97ff, #6a3dff)",
+        "purpose": "The app mark's tile, with a white top sheen and a white viewfinder glyph."
+      }
+    ],
+    "shadows": [
+      {
+        "name": "glass-drop",
+        "value": "0 3px 8px rgba(0, 0, 0, 0.43)",
+        "purpose": "Under every glass panel and the rail (painted: Gaussian sigma 4px, 3px drop, alpha 110/255)."
+      },
+      {
+        "name": "knob-lift",
+        "value": "0 1px 0 rgba(0, 0, 20, 0.27)",
+        "purpose": "Under the toggle knob."
+      },
+      {
+        "name": "status-halo",
+        "value": "0 0 0 2.5px (light color at 24%)",
+        "purpose": "Halo around a 7px status dot."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Qt OutExpo; every animation in the app."
+      },
+      {
+        "name": "toggle",
+        "value": "220ms",
+        "purpose": "Switch knob slide and track cross-fade."
+      },
+      {
+        "name": "segmented",
+        "value": "240ms",
+        "purpose": "Segmented pill slide."
+      },
+      {
+        "name": "rail-pill",
+        "value": "260ms",
+        "purpose": "Nav pill slide between tabs."
+      },
+      {
+        "name": "page-change",
+        "value": "260ms",
+        "purpose": "Old page snapshot fades out; new page rises 10px from 35% opacity."
+      },
+      {
+        "name": "answer-bar",
+        "value": "700ms",
+        "purpose": "The pipeline bar grows from zero; the one long moment."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "columns-stack",
+        "value": "700px"
+      },
+      {
+        "name": "window-min",
+        "value": "880px"
+      },
+      {
+        "name": "window-default",
+        "value": "980px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Glass Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "The default capsule: translucent white glass that brightens on hover.",
+      "html": "<button class=\"ds-btn\">Use whole monitor</button>",
+      "css": ".ds-btn { font: 600 9.5pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #f3f5ff; padding: 7px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.08); cursor: pointer; } .ds-btn:hover { border-color: rgba(255,255,255,0.20); background: rgba(255,255,255,0.14); } .ds-btn:active { background: rgba(255,255,255,0.05); } .ds-btn:focus-visible { outline: none; border-color: #7c9dff; } .ds-btn:disabled { color: rgba(243,245,255,0.35); border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.04); }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action in a group: the blue gradient capsule.",
+      "html": "<button class=\"ds-btn-primary\">Pick on screen</button>",
+      "css": ".ds-btn-primary { font: 600 9.5pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #fff; padding: 7px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.20); background: linear-gradient(135deg, #6a93ff, #3a5ef0); cursor: pointer; } .ds-btn-primary:hover { background: linear-gradient(135deg, #82a5ff, #4a6cff); } .ds-btn-primary:active { background: linear-gradient(135deg, #5279f2, #314fd8); } .ds-btn-primary:focus-visible { outline: none; border-color: #fff; } .ds-btn-primary:disabled { color: rgba(255,255,255,0.43); border-color: rgba(255,255,255,0.08); background: rgba(77,124,255,0.22); }"
+    },
+    {
+      "name": "Start / Stop",
+      "kind": "button",
+      "refersTo": "button-start",
+      "description": "The header capsule. Blue gradient as Start; Stop Red glass while watching.",
+      "html": "<div class=\"ds-go-row\"><button class=\"ds-go\">Start</button><button class=\"ds-go ds-go-stop\">Stop</button></div>",
+      "css": ".ds-go-row { display: flex; gap: 10px; padding: 16px; background: #0b1140; } .ds-go { font: 600 10.5pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #fff; height: 36px; min-width: 64px; padding: 0 28px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.20); background: linear-gradient(135deg, #6a93ff, #3a5ef0); cursor: pointer; } .ds-go:hover { background: linear-gradient(135deg, #82a5ff, #4a6cff); } .ds-go:focus-visible { outline: none; border-color: #fff; } .ds-go-stop { color: #ffd9de; border-color: rgba(255,90,110,0.55); background: rgba(255,90,110,0.18); } .ds-go-stop:hover { background: rgba(255,90,110,0.28); }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A dark inset well that turns periwinkle on focus and red when invalid.",
+      "html": "<div class=\"ds-field-wrap\"><input class=\"ds-field\" placeholder=\"Whole monitor\"><input class=\"ds-field ds-field-invalid\" value=\"12, 40, x\"></div>",
+      "css": ".ds-field-wrap { display: flex; gap: 10px; padding: 16px; background: #0f1438; } .ds-field { width: 150px; font: 400 10pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #f3f5ff; padding: 6px 10px; border-radius: 11px; border: 1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.25); } .ds-field::placeholder { color: #858fb6; } .ds-field:hover { border-color: rgba(255,255,255,0.18); } .ds-field:focus-visible { outline: none; border-color: #7c9dff; background: rgba(0,0,0,0.33); } .ds-field-invalid { border-color: #ff5a6e; background: rgba(255,90,110,0.10); }"
+    },
+    {
+      "name": "Navigation Rail",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Frosted rail tabs; a lit glass pill marks the chosen tab and slides 260ms between them.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-tab ds-tab-on\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\"><path d=\"M3.5 11L12 4l8.5 7M5.8 9.4v9.2q0 1.8 1.8 1.8h8.8q1.8 0 1.8-1.8V9.4M10 20.4v-5.2h4v5.2\"/></svg>Home</a><a class=\"ds-tab\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\"><path d=\"M8 17h-.8q-3.6 0-3.6-3.6V8q0-3.6 3.6-3.6h9.6q3.6 0 3.6 3.6v5.4q0 3.6-3.6 3.6h-4.2L8 20.6z\"/></svg>Chat</a><a class=\"ds-tab\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\"><path d=\"M3.6 8.6V3.6h5M20.4 8.6V3.6h-5M20.4 15.4v5h-5M3.6 15.4v5h5M8.5 12h7\"/></svg>Overlay</a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 4px; width: 204px; padding: 12px; border-radius: 24px; background: linear-gradient(rgba(255,255,255,0.10), rgba(255,255,255,0.04)), rgba(14,19,56,0.9); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 3px 8px rgba(0,0,0,0.43); } .ds-tab { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; border-radius: 14px; border: 1px solid transparent; font: 600 10pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #aab3d8; text-decoration: none; transition: background 260ms cubic-bezier(0.16,1,0.3,1), color 260ms; } .ds-tab svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; } .ds-tab:hover { color: #f3f5ff; background: rgba(255,255,255,0.04); } .ds-tab:focus-visible { outline: none; border-color: #7c9dff; } .ds-tab-on, .ds-tab-on:hover { color: #fff; background: linear-gradient(135deg, rgba(106,147,255,0.31), rgba(58,94,240,0.20)); border-color: rgba(170,195,255,0.51); }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip-kind",
+      "description": "Translucent capsules in the hue of what they report: kind (blue), pasted (green), copied (plain), guess (amber).",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-chip\">RIDDLE</span><span class=\"ds-chip ds-chip-good\">Pasted</span><span class=\"ds-chip ds-chip-plain\">Copied</span><span class=\"ds-chip ds-chip-guess\">Guess: no fact matched this riddle</span></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; padding: 16px; background: #0f1438; } .ds-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 11px; font: 600 8.5pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #c9d6ff; border: 1px solid rgba(125,157,255,0.39); background: rgba(77,124,255,0.18); } .ds-chip-good { color: #93f0c4; border-color: rgba(47,211,138,0.43); background: rgba(47,211,138,0.13); } .ds-chip-plain { color: #aab3d8; border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); } .ds-chip-guess { font-size: 9pt; padding: 0 11px; color: #ffd08a; border-color: rgba(255,181,71,0.43); background: rgba(255,181,71,0.13); }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "glass-panel",
+      "description": "The floating frosted container: navy tint, white sheen, top-left-lit rim, soft drop.",
+      "html": "<div class=\"ds-stage\"><section class=\"ds-glass\"><h3 class=\"ds-glass-title\">Pasting</h3><div class=\"ds-row\"><span>Paste automatically</span><span class=\"ds-toggle\"></span></div><hr class=\"ds-sep\"><div class=\"ds-row\"><span>Wait after each key<small>Raise it if pastes go missing</small></span><span class=\"ds-val\">15 ms</span></div></section></div>",
+      "css": ".ds-stage { padding: 24px; background: radial-gradient(circle at 6% -2%, rgba(47,91,255,0.62), rgba(47,91,255,0.22) 30%, transparent 66%), radial-gradient(circle at 97% 12%, rgba(123,60,255,0.42), transparent 48%), linear-gradient(135deg, #0d1546, #080c2a 55%, #04061a); } .ds-glass { padding: 18px; border-radius: 22px; color: #f3f5ff; font: 400 10pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; background: linear-gradient(rgba(255,255,255,0.085), rgba(255,255,255,0.035)), rgba(12,17,50,0.55); border: 1px solid rgba(255,255,255,0.07); border-top-color: rgba(255,255,255,0.31); border-left-color: rgba(255,255,255,0.24); box-shadow: 0 3px 8px rgba(0,0,0,0.43); } .ds-glass-title { margin: 0 0 8px; font: 600 11pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; } .ds-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 0; } .ds-row small { display: block; font-size: 9pt; color: #858fb6; } .ds-sep { border: none; height: 1px; margin: 0; background: rgba(255,255,255,0.07); } .ds-val { color: #aab3d8; } .ds-toggle { width: 42px; height: 24px; border-radius: 12px; background: linear-gradient(135deg, #6a93ff, #3a5ef0); border: 1px solid rgba(255,255,255,0.22); position: relative; } .ds-toggle::after { content: ''; position: absolute; right: 2px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 0 rgba(0,0,20,0.27); }"
+    },
+    {
+      "name": "Answer Pipeline",
+      "kind": "custom",
+      "refersTo": "glass-panel",
+      "description": "Signature: the proportional read / AI / paste bar under the answer, grown over 700ms.",
+      "html": "<div class=\"ds-pipe\"><div class=\"ds-pipe-bar\"><i style=\"flex:0.42;background:#3cc8ff\"></i><i style=\"flex:0.41;background:#8a6bff\"></i><i style=\"flex:0.11;background:#2fd38a\"></i></div><div class=\"ds-pipe-legend\"><span><b style=\"background:#3cc8ff\"></b>Read  0.42 s</span><span><b style=\"background:#8a6bff\"></b>AI  0.41 s</span><span><b style=\"background:#2fd38a\"></b>Paste  0.11 s</span></div></div>",
+      "css": ".ds-pipe { padding: 16px; background: #10163f; font: 400 9pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #aab3d8; } .ds-pipe-bar { display: flex; gap: 3px; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); transform-origin: left; animation: ds-grow 700ms cubic-bezier(0.16,1,0.3,1); } .ds-pipe-bar i { border-radius: 4px; } .ds-pipe-legend { display: flex; gap: 22px; margin-top: 10px; white-space: pre; } .ds-pipe-legend b { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; } @keyframes ds-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }"
+    },
+    {
+      "name": "Game Strip",
+      "kind": "custom",
+      "refersTo": "strip",
+      "description": "The over-game capsule: dark glass, white answer, green pasted, amber guess. Never clickable or focusable.",
+      "html": "<div class=\"ds-strip-stage\"><div class=\"ds-strip\"><span class=\"ds-strip-kind\">RIDDLE</span><b>FISHINOCLOWNINO15</b><span class=\"ds-strip-sec\">0.94s</span><span class=\"ds-strip-ok\">pasted</span><span class=\"ds-strip-guess\">guess</span></div></div>",
+      "css": ".ds-strip-stage { padding: 20px; background: linear-gradient(90deg, #7fc4ea, #4f9e3f); } .ds-strip { display: inline-flex; align-items: center; gap: 10px; height: 36px; box-sizing: border-box; padding: 6px 16px 6px 8px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.20); background: linear-gradient(rgba(28,36,86,0.85), rgba(8,11,34,0.85)); font: 400 11pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; color: #fff; pointer-events: none; user-select: none; } .ds-strip b { font: 600 11pt 'Segoe UI Variable Display Semibold', 'Segoe UI', sans-serif; } .ds-strip-kind { font: 600 9pt 'Segoe UI Variable Text', 'Segoe UI', sans-serif; height: 22px; line-height: 22px; padding: 0 9px; border-radius: 11px; border: 1px solid rgba(150,178,255,0.51); background: rgba(77,124,255,0.47); } .ds-strip-sec { color: rgba(205,214,245,0.78); } .ds-strip-ok { font-weight: 600; color: #4ee6a0; } .ds-strip-guess { font-weight: 600; color: #ffc35c; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Floating Glass Console",
+    "overview": "MASSAB is one glass control window floating over a deep indigo sky. A dark navy-to-black backdrop carries three large soft glows (blue top-left, violet top-right, azure from below) and a faint grain. Frosted navy glass panels float on it, each with a 1px rim lit from the top-left and a soft dark shadow. A frosted side rail holds four icon tabs, and a glass pill slides between them. Pages cross-fade inside the one shell rather than swapping, so the window reads as a single console and not as a settings form. The look pairs the Vision UI dashboard with Apple Vision Pro (visionOS) glass. The user pinned that direction.\n\nThe last answer is the brightest object on screen. It is the only 30pt type, and it sits in the hero panel, which catches extra accent light. A proportional read → AI → paste bar sits under it. Everything else is quieter: lavender-gray secondary text, capsule controls, and grouped rows split by hairlines. The density is calm. Setup happens here between streams, while the race itself happens in the game, watched through the strip.\n\nAnything drawn over the game uses the same dark glass at a smaller scale, with white text. The strip and the box can't be clicked, never take focus, and are hidden from screen capture. The light Frutiger Aero look (a light sky, light glass cards and gloss buttons) is retired, and nothing from it carries forward.",
+    "keyCharacteristics": [
+      "Deep indigo backdrop with large soft color glows and a 2.8% grain.",
+      "Navy-tinted glass panels with a top-left-lit 1px rim and a painted soft shadow.",
+      "One electric-blue accent for selection and primary actions, and three signal colors for state.",
+      "Capsule controls throughout, with painted switches, segmented pills and a sliding rail pill.",
+      "Exponential ease-out motion at 220–260ms, with one long 700ms moment (the answer bar growing).",
+      "Over-game surfaces are dark glass with white text, and they are passive."
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Rule",
+        "body": "Electric Blue marks selection and primary actions, and nothing else. It never signals state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Signal Trio Rule",
+        "body": "Green means live or pasted, amber means guess or loading, and red means stop, error or low VRAM. These colors are never decorative, and no fourth state color exists.",
+        "section": "colors"
+      },
+      {
+        "name": "The Amber Guess Rule",
+        "body": "A guess is always flagged in amber: a \"Guess: …\" chip on Home and a \"guess\" word on the strip. It stays visible beside \"pasted\", because a pasted guess is still a guess.",
+        "section": "colors"
+      },
+      {
+        "name": "The Loudest Answer Rule",
+        "body": "Only the answer is set at display size. Nothing else on any page competes with it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Is For Machines Rule",
+        "body": "Monospace appears only in the log, where it shows raw reads and timestamps.",
+        "section": "typography"
+      },
+      {
+        "name": "The Steady Gutter Rule",
+        "body": "Every page reserves the same 10px scroll gutter whether or not it scrolls, so panel edges never shift between tabs.",
+        "section": "layout"
+      },
+      {
+        "name": "The Lit Rim Rule",
+        "body": "Every glass surface (panels, the rail, the rail pill, the Segmented pill and the mark) has a 1px rim drawn as a gradient that's brightest at the top-left (white at 31%, or periwinkle at 47% on the hero) and fades to about 5% at the bottom-right.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Hero Light Rule",
+        "body": "Only the answer panel catches accent light: a radial Electric Blue wash from its top-left at 27%, fading to nothing.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Dark Glass Over the Game Rule",
+        "body": "Anything drawn over the game is dark navy glass with white text. The strip and the box are click-through, never take focus, and are excluded from screen capture. The picker is the one exception: it's a deliberate, temporary capture of the mouse, and Esc or right-click cancels it.",
+        "section": "components"
+      },
+      {
+        "name": "The Capsule Control Rule",
+        "body": "Every interactive control is a capsule. Square corners belong only to the viewfinder.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do float every grouping on Glass (22px radius, 18px padding, 8px shadow margin) over the painted Backdrop. Never put a grouping on a flat fill.",
+      "Do keep Electric Blue for selection and primary actions, and use the blue gradient (#6a93ff → #3a5ef0) for the one primary action in a group.",
+      "Do flag every guess in amber, beside the pasted or copied state rather than in its place.",
+      "Do use green for live or pasted, amber for guess or loading, and red for stop, error or low VRAM, everywhere, including the strip.",
+      "Do animate with exponential ease-out at 220–260ms, and keep 700ms for the answer bar alone.",
+      "Do give every control a Periwinkle Light focus ring for Tab, and no ring after a mouse click.",
+      "Do keep the answer the only display-size text, shrinking it to fit rather than truncating it."
+    ],
+    "donts": [
+      "Don't use Electric Blue to mean a state, or a signal color as decoration.",
+      "Don't bring back the retired light look: light skies, light glass cards and glossy buttons.",
+      "Don't make anything drawn over the game clickable or focusable, light-colored, or visible to MASSAB's own screen capture.",
+      "Don't try to fake blur or shadows in the style sheet. Paint them in theme.py, and carry new depth through Glass.",
+      "Don't add square-cornered controls. Square corners belong to the viewfinder only.",
+      "Don't use monospace outside the log."
+    ]
+  }
+}
