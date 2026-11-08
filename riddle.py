@@ -109,11 +109,12 @@ def centered(line, center, fw):
     return []
 
 
-def read_rows(ocr, frame):
+def read_rows(ocr, frame, boxes=None):
     """OCR every overlay message in a frame: [(text, score, n_words, y)] top to bottom.
 
     Rows are found at WORK_H but read from the full-size frame, since small
-    wrapped text loses a lot when it's scaled down.
+    wrapped text loses a lot when it's scaled down. Given a list, boxes also
+    gets each row's (x0, y0, x1, y1, text) in frame pixels, for drawing.
     """
     work = to_work_scale(frame)
     fh, fw = work.shape[:2]
@@ -135,6 +136,8 @@ def read_rows(ocr, frame):
         text, score, middle = text.strip(), float(score), (y0 + y1) // 2
         if not text:
             continue
+        if boxes is not None:
+            boxes.append((int(x0 * scale), int(y0 * scale), int(x1 * scale), int(y1 * scale), text))
         if last_middle is not None and middle - last_middle <= WRAP_PITCH:
             first, first_score, first_words, first_y = messages[-1]
             messages[-1] = (f"{first} {text}", min(score, first_score), first_words + words, first_y)

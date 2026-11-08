@@ -16,6 +16,8 @@ is reported through one on_event(kind, now=seconds, ...) callback:
     mode        mode            the mode changed
     error       message
     frame       reads           every frame's OCR reads (verbose only)
+    rows        boxes           each text row found in a frame, as (x0, y0, x1, y1, text)
+                                in frame pixels (show_reads only)
 """
 import argparse
 import sys
@@ -54,6 +56,7 @@ class Options:
     system_prompt: str = None   # None = prompts/riddle_system.txt
     facts_path: str = FACTS_PATH
     code_step: int = 1          # give the code reader every Nth frame
+    show_reads: bool = False    # report where text was read, for drawing it on screen
 
 
 class Engine:
@@ -214,7 +217,12 @@ class Engine:
         self.frames_seen += 1
         # Every mode watches for riddles: "the code is the rarity of dragon
         # cannelloni and 67" looks like a code but needs solving.
-        messages = read_rows(self.ocr, frame)
+        if self.options.show_reads:
+            boxes = []
+            messages = read_rows(self.ocr, frame, boxes)
+            self.emit("rows", boxes=boxes)
+        else:
+            messages = read_rows(self.ocr, frame)
         if self.options.verbose:
             self.emit("frame", reads=messages)
         was_claimed = self.tracker.claimed(self.now)

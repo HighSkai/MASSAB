@@ -63,7 +63,30 @@ The riddle can be on the same line as either kind. Lines about one that's over, 
 
 Press **F8** in the game to switch modes. The hotkey can be changed in Settings.
 
-The strip at the bottom left of the screen shows the mode, the answer, how long it took and whether it pasted. It can't be clicked and never takes focus, because pasting only works while the active window's title is exactly `Roblox`. If it isn't, the answer is still copied.
+The window has four pages:
+
+| Page | What's on it |
+|---|---|
+| Home | The last answer, with how long each step took, and a log of everything that happened |
+| Chat | Ask the AI anything. It's the riddle model, so it's quick but small |
+| Overlay | Where on screen MASSAB reads, a box that shows it over the game, and the strip |
+| Settings | Codes, pasting, the AI and the hotkey |
+
+The strip at the bottom left of the screen shows the mode, the answer, how long it took and whether it pasted. It can't be clicked and never takes focus, because pasting only works while the active window's title is exactly `Roblox`. If it isn't, the answer is still copied. Its corner, size and how see-through it is are on the Overlay page.
+
+### The reading area and box
+
+MASSAB reads the whole monitor unless you give it an area. On the Overlay page, **Pick on screen** lets you drag a box over the part to read, or type it as `x,y,w,h` in pixels. The preview shows where it is, with the zones inside it where code lines and riddle rows are looked for.
+
+**Show the box** draws that area over the game: never, while watching, or always. It can also mark the two zones, and highlight each line of text as it's read, labeled with what OCR made of it. That's the quickest way to check MASSAB is looking in the right place. The box can't be clicked and is hidden from screen capture, so MASSAB never reads its own labels. Its color, line width and opacity can be changed.
+
+Settings that only take effect when watching starts, like the area and pasting, are greyed out until you press Stop.
+
+### Chat
+
+The Chat page talks to the same model that solves riddles, once it's loaded. With **Fact sheet** on, questions about the game get the matching lines of `data/sab_facts.md`, like riddles do. Replies are short, because the model only has room for about the last 3,000 characters of the chat.
+
+The model can only do one thing at a time, so a riddle on screen always comes first: it cuts off any reply that's still coming in.
 
 An answer is pasted as soon as there is one, and replaced if more of the riddle arrives. Check it before you submit.
 
@@ -73,7 +96,7 @@ A paste presses six keys with a short wait after each, 15 ms by default, so Robl
 
 **`GUESS`** means no line of the fact sheet covers the riddle, so the model answered from memory. Don't trust it.
 
-The system prompt can be edited in the **System prompt** tab, and takes effect on the next riddle. The reply has to keep the `ANSWER:` format. When the model replies `ANSWER: NONE`, nothing is pasted.
+The riddle system prompt is `prompts/riddle_system.txt`, and takes effect the next time the AI loads. The reply has to keep the `ANSWER:` format. When the model replies `ANSWER: NONE`, nothing is pasted.
 
 ## The fact sheet
 
