@@ -7,9 +7,9 @@ bottom and drop off the top, so a code arrives one word at a time:
     "code is..." -> "KEYBOARD" -> "ESCAPE" -> "IS" -> "BORING"
 
 Usage:
-    python codereader.py                      # watch the primary monitor live
-    python codereader.py --region 0,120,1280,720   # only a windowed video player
-    python codereader.py --video clip.mp4     # test on a recording
+    python codereader.py                      # watch the top half of the primary monitor
+    python codereader.py --region 0,120,1280,360   # only the top half of a windowed video player
+    python codereader.py --video clip.mp4     # test on a recording (its top half)
 
 Codes and riddles are both watched for. Riddles are solved by the local AI, if
 setup_ai.py has installed it. Answers are printed, copied to the clipboard, and
@@ -25,20 +25,26 @@ import cv2
 import numpy as np
 from rapidfuzz import fuzz
 
-# Everything is measured on frames scaled to this height.
-WORK_H = 720
-# Where the overlay lives, as fractions of the frame (x0, y0, x1, y1). Lines
-# are centered, so a long one ("this code has NO NUMBERS") starts far left.
-ROI = (0.02, 0.04, 0.98, 0.45)
-# The icon's yellow face is ~25x22px at WORK_H; videos zoom in on it up to ~1.7x.
+# Everything is measured on frames scaled to this width, which is a 16:9
+# picture 720 high. Width rather than height, so the strip cut off the top of
+# the picture that is read by default keeps its text the same size.
+WORK_W = 1280
+# The icon's yellow face is ~25x22px at work scale; videos zoom in on it up to ~1.7x.
 FACE_MIN_H, FACE_MAX_H = 12, 48
 
 
+def top_half(x, y, w, h):
+    """The default area to read: the whole width of a screen and the top half
+    of it, where the overlay is. Code lines and riddle rows are both looked for
+    in all of it."""
+    return x, y, w, h // 2
+
+
 def to_work_scale(frame):
-    h = frame.shape[0]
-    if h == WORK_H:
+    w = frame.shape[1]
+    if w == WORK_W:
         return frame
-    return cv2.resize(frame, None, fx=WORK_H / h, fy=WORK_H / h, interpolation=cv2.INTER_AREA)
+    return cv2.resize(frame, None, fx=WORK_W / w, fy=WORK_W / w, interpolation=cv2.INTER_AREA)
 
 
 def dim_gain(hsv):
@@ -57,12 +63,11 @@ def find_lines(frame):
     separate even when stacked icons touch or the background is red.
     """
     fh, fw = frame.shape[:2]
-    rx0, ry0, rx1, ry1 = int(ROI[0] * fw), int(ROI[1] * fh), int(ROI[2] * fw), int(ROI[3] * fh)
-    hsv = cv2.cvtColor(frame[ry0:ry1, rx0:rx1], cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     gain = dim_gain(hsv)
     if gain != 1.0:
         frame = cv2.convertScaleAbs(frame, alpha=gain)
-        hsv = cv2.cvtColor(frame[ry0:ry1, rx0:rx1], cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
     red = ((h <= 10) | (h >= 170)) & (s > 110) & (v > 90)
     yellow = ((h >= 15) & (h <= 38) & (s > 110) & (v > 140)).astype(np.uint8)
@@ -80,7 +85,7 @@ def find_lines(frame):
         # Back to frame coordinates. The line (icon + text) is centered on the
         # screen, so the text ends about as far right of center as the icon
         # starts left of it.
-        fx, fy = rx0 + x, ry0 + y
+        fx, fy = x, y
         icon_left = fx - 0.54 * w
         text_left = int(fx + 1.5 * w)
         text_right = int(min(fw, fw - icon_left + 0.5 * w))
@@ -209,7 +214,7 @@ class Read:
     """One OCR read of one line, and what it says about the line's role."""
 
     def __init__(self, raw, score, n_words=None, y=None):
-        """n_words and y (line center, in WORK_H pixels) come from the image;
+        """n_words and y (line center, in work-scale pixels) come from the image;
         without n_words, OCR's spaces stand in."""
         raw = raw.strip()
         self.text = normalize(raw)
@@ -353,7 +358,7 @@ def agree(a, b):
 # NEW_UNREAD if OCR couldn't read it: that's almost always a known line.
 WEAK_MATCH, MOVED_DOWN, VANISHED, MISSED_LINE, SAME_PLACE = 60, 45, 30, 30, 15
 NEW_LINE, NEW_ABOVE, NEW_UNREAD = 10, 25, 40
-MOVE_SLACK = 20  # pixels at WORK_H; lines are ~52px apart
+MOVE_SLACK = 20  # pixels at work scale; lines are ~52px apart
 # Seconds an intro waits for its first word ("the code is..." then a pause).
 INTRO_WAIT = 20.0
 
@@ -563,7 +568,19 @@ class CodeReader:
         self._close(code, max((s.order for s in self.slots), default=-1.0))
 
 
-def frames_from_video(path, fps):
+def crop(frame, area):
+    x, y, w, h = area
+    return frame[y:y + h, x:x + w]
+
+
+def frames_from_video(path, fps, region=None):
+    """Yield (seconds, frame) from a recording, cut to region (x, y, w, h in the
+    video's pixels), or to its top half like the screen is by default."""
+    for t, frame in _video_frames(path, fps):
+        yield t, crop(frame, region or top_half(0, 0, frame.shape[1], frame.shape[0]))
+
+
+def _video_frames(path, fps):
     cap = cv2.VideoCapture(path)
     step = max(1, round(cap.get(cv2.CAP_PROP_FPS) / fps))
     i = 0
@@ -580,7 +597,8 @@ BLOCKED_RETRY = 0.25    # seconds between tries while the screen can't be captur
 
 
 def frames_from_screen(fps, monitor=1, region=None, on_blocked=None):
-    """Yield (seconds, frame) for as long as the caller wants them.
+    """Yield (seconds, frame) for as long as the caller wants them. Frames are
+    region (x, y, w, h in physical pixels), or the monitor's top half without it.
 
     Windows refuses captures during a lock screen or an admin prompt. That
     shouldn't end the watch, so this starts over with a fresh capture until the
@@ -596,9 +614,10 @@ def frames_from_screen(fps, monitor=1, region=None, on_blocked=None):
             with mss.MSS() as sct:
                 if region:
                     x, y, w, h = region
-                    box = {"left": x, "top": y, "width": w, "height": h}
                 else:
-                    box = sct.monitors[monitor]
+                    m = sct.monitors[monitor]
+                    x, y, w, h = top_half(m["left"], m["top"], m["width"], m["height"])
+                box = {"left": x, "top": y, "width": w, "height": h}
                 while True:
                     t0 = time.monotonic()
                     frame = np.ascontiguousarray(np.asarray(sct.grab(box))[..., :3])

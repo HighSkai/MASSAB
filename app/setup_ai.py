@@ -14,8 +14,7 @@ import sys
 import urllib.request
 import zipfile
 
-# A packaged build keeps bin/ and models/ beside the exe.
-APP_DIR = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else os.path.abspath(__file__))
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
 LLAMA_DIR = os.path.join(APP_DIR, "bin", "llama")
 LLAMA_SERVER = os.path.join(LLAMA_DIR, "llama-server.exe")
 MODELS_DIR = os.path.join(APP_DIR, "models")

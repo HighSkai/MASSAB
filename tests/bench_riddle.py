@@ -20,6 +20,7 @@ from datetime import date
 import cv2
 import mss
 
+import app_path  # noqa: F401  (puts app/ on the import path)
 import engine as engine_module
 from codereader import frames_from_video, normalize, similarity
 from engine import CODE_FPS, RIDDLE_FPS, Engine, Options
@@ -142,7 +143,7 @@ def bench_pipeline(engine, report):
     each result counts the worst case: a full frame of waiting, plus the grab."""
     print(f"\nFull pipeline at 1080p, {RIDDLE_FPS} fps, everything from the text appearing to the paste finishing")
     try:
-        from sim import Renderer, have_testdata
+        from sim import Renderer, have_testdata, screen
     except ImportError:
         print("  skip  sim.py not found")
         return
@@ -171,7 +172,7 @@ def bench_pipeline(engine, report):
                 base = renderer.background(f"bg{(n * len(TRIVIA) + k) % 9}")
                 # A line break draws the text centered, the way the real overlay does.
                 riddle = text if "\n" in text else text + "\n"
-                screens = [cv2.resize(renderer.draw(base, lines), (1920, 1080), interpolation=cv2.INTER_LINEAR)
+                screens = [screen(cv2.resize(renderer.draw(base, lines), (1920, 1080), interpolation=cv2.INTER_LINEAR))
                            for lines in ([], [INTRO], [INTRO, riddle])]
                 events = []
                 engine.on_event = lambda kind, now, **e: events.append((kind, e))

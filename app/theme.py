@@ -42,7 +42,7 @@ RED = "#ff5c5c"
 
 LIGHTS = {"green": MINT, "amber": AMBER, "red": RED, "blue": ICE, "gray": "#55555c"}
 
-BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+BASE = os.path.dirname(os.path.abspath(__file__))
 FONT_FILES = ("BigShouldersDisplay.ttf", "MartianMono.ttf")
 
 

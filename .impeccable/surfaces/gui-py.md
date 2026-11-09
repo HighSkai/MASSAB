@@ -1,13 +1,13 @@
 ---
 version: 1
 slug: "gui-py"
-primary_target: "gui.py"
-related_targets: ["overlay.py","theme.py"]
+primary_target: "app/gui.py"
+related_targets: ["app/overlay.py","app/theme.py"]
 ---
 
 # Surface: MASSAB control window
 
-Scope: the desktop control window (`gui.py`), plus everything else it draws: the game strip, the on-screen box and the area picker (`overlay.py`). Visitor mode: Operate. The player sets things up before a stream, presses Start, and looks back at the last answer and the log afterwards.
+Scope: the desktop control window (`app/gui.py`), plus everything else it draws: the game strip, the on-screen box and the area picker (`app/overlay.py`). Visitor mode: Operate. The player sets things up before a stream, presses Start, and looks back at the last answer and the log afterwards.
 
 Pinned by the user (2026-11-08, second redesign; this replaces the dark-glass direction):
 - **Look:** a dark, minimalist UI that feels brutalist. The color and layout references are seven dark dashboards: the ByeWind/SnowUI eCommerce dashboard, CMSolutions, a black finance overview, an "Automation Operations" console and a dark customer-card grid.
@@ -15,7 +15,7 @@ Pinned by the user (2026-11-08, second redesign; this replaces the dark-glass di
 - **Motion:** smooth, springy, Apple-style hops for animations and transitions.
 - **Copy:** clean, simple and functional.
 - **Branding:** no logo, just a text title.
-- **Fonts chosen by the user:** Big Shoulders Display and Martian Mono, bundled under OFL in `fonts/`. Body text stays Segoe UI Variable.
+- **Fonts chosen by the user:** Big Shoulders Display and Martian Mono, bundled under OFL in `app/fonts/`. Body text stays Segoe UI Variable.
 
 Apple sources behind the motion and the fundamentals:
 - WWDC23 "Animate with springs": duration and bounce, velocity carried through retargets, bounce 0 as the default, about 0.15 for a small bounce and 0.3 for a noticeable one.

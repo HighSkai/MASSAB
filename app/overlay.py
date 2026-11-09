@@ -11,11 +11,8 @@ from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
-from codereader import ROI
-from riddle import BAND
+from codereader import top_half
 from theme import INK, RULE_STRONG, TEXT3, font
-
-ZONES = (("code lines", ROI, Qt.PenStyle.DashLine), ("riddle rows", BAND, Qt.PenStyle.DotLine))
 
 
 def monitor_rects():
@@ -26,10 +23,11 @@ def monitor_rects():
 
 
 def capture_area(monitor, region, monitors):
-    """What gets captured, as (x, y, w, h) in physical pixels, or None if that monitor doesn't exist."""
+    """What gets read, as (x, y, w, h) in physical pixels, or None if that monitor doesn't exist.
+    Without a region it's the top half of the monitor."""
     if region:
         return tuple(region)
-    return tuple(monitors[monitor]) if 0 < monitor < len(monitors) else None
+    return top_half(*monitors[monitor]) if 0 < monitor < len(monitors) else None
 
 
 def to_logical(rect, origin, ratio):
@@ -114,7 +112,7 @@ class AreaOverlay(QWidget):
         self.area = None        # physical pixels, (x, y, w, h)
         self.reads = []
         self.color, self.line_width, self.opacity = QColor("#3cc8ff"), 2, 0.9
-        self.zones, self.labels = True, True
+        self.labels = True
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -126,9 +124,9 @@ class AreaOverlay(QWidget):
             self.setGeometry(logical_rect(area))
         self.update()
 
-    def set_look(self, color, width, opacity, zones, labels):
+    def set_look(self, color, width, opacity, labels):
         self.color, self.line_width, self.opacity = QColor(color), width, opacity / 100
-        self.zones, self.labels = zones, labels
+        self.labels = labels
         self.update()
 
     def set_reads(self, boxes):
@@ -147,7 +145,7 @@ class AreaOverlay(QWidget):
         scale = aw / max(1, self.width())     # frame pixels per screen pixel
         line = self.line_width * scale
 
-        # The capture area: a faint outline with bright corners, like a viewfinder.
+        # The area codes and riddles are read from: a faint outline with bright corners, like a viewfinder.
         edge = QRectF(line / 2, line / 2, aw - line, ah - line)
         faint = QColor(self.color)
         faint.setAlpha(110)
@@ -160,20 +158,6 @@ class AreaOverlay(QWidget):
                                (edge.bottomLeft(), 1, -1), (edge.bottomRight(), -1, -1)):
             p.drawLine(corner, corner + QPointF(dx * arm, 0))
             p.drawLine(corner, corner + QPointF(0, dy * arm))
-
-        if self.zones:
-            for i, (name, (x0, y0, x1, y1), style) in enumerate(ZONES):
-                zone = QRectF(x0 * aw, y0 * ah, (x1 - x0) * aw, (y1 - y0) * ah)
-                color = QColor(self.color) if i == 0 else QColor(self.color).lighter(135)
-                p.setPen(QPen(color, line, style))
-                p.setBrush(Qt.BrushStyle.NoBrush)
-                p.drawRect(zone)
-                if self.labels:
-                    # The code zone is the outer one. Its tag goes at the bottom and the
-                    # riddle zone's at the top, so neither sits on the other's line.
-                    corner = zone.bottomLeft() + QPointF(6 * scale, -28 * scale) if i == 0 else \
-                        zone.topLeft() + QPointF(6 * scale, 6 * scale)
-                    tag(p, corner, name, color, scale)
 
         for x0, y0, x1, y1, text in self.reads:
             box = QRectF(x0, y0, x1 - x0, y1 - y0).adjusted(-4 * scale, -3 * scale, 4 * scale, 3 * scale)
@@ -306,7 +290,7 @@ class AreaPicker(QWidget):
 
 
 class AreaPreview(QWidget):
-    """A little monitor showing what part of the screen is read, and where in it each kind of text is looked for."""
+    """A little monitor showing what part of the screen is read."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -355,13 +339,6 @@ class AreaPreview(QWidget):
                 fill.setAlpha(34)
                 p.setBrush(fill)
                 p.drawRect(area.adjusted(0.75, 0.75, -0.75, -0.75))
-                for i, (_, (x0, y0, x1, y1), style) in enumerate(ZONES):
-                    zone = QRectF(area.left() + x0 * area.width(), area.top() + y0 * area.height(),
-                                  (x1 - x0) * area.width(), (y1 - y0) * area.height())
-                    color = QColor(self.color) if i == 0 else QColor(self.color).lighter(140)
-                    p.setPen(QPen(color, 1, style))
-                    p.setBrush(Qt.BrushStyle.NoBrush)
-                    p.drawRect(zone)
                 p.restore()
         if self.caption:
             p.setPen(QColor(INK if self.area else TEXT3))

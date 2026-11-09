@@ -259,7 +259,8 @@ def main():
                     help=f"frames to check per second (default {RIDDLE_FPS}). The code reader only "
                          f"gets about {CODE_FPS} of them")
     ap.add_argument("--monitor", type=int, default=1, help="monitor to capture, 1 = primary")
-    ap.add_argument("--region", help="capture only x,y,w,h (e.g. a windowed video player)")
+    ap.add_argument("--region", help="read only x,y,w,h, in pixels of the screen or the --video "
+                                     "(default: the top half of it, all the way across)")
     ap.add_argument("--words", type=int, default=3,
                     help="copy as soon as this many words are in, and again for each extra word "
                          "(default 3, 0 = wait for the code to finish)")
@@ -287,14 +288,14 @@ def main():
     engine = Engine(options, lambda kind, now, **e: print_event(kind, now, words=args.words, **e))
     # Codes don't need the AI, so without it only riddles go unsolved.
     if not ai_installed(args.model):
-        print("The AI isn't installed, so only codes will be read. Run setup_ai.py to solve riddles too.")
+        print("The AI isn't installed, so only codes will be read. Run app\\setup_ai.py to solve riddles too.")
     elif not engine.start_ai():
         return 1
 
+    region = tuple(int(v) for v in args.region.split(",")) if args.region else None
     if args.video:
-        frames = frames_from_video(args.video, args.fps)
+        frames = frames_from_video(args.video, args.fps, region)
     else:
-        region = tuple(int(v) for v in args.region.split(",")) if args.region else None
         frames = frames_from_screen(args.fps, args.monitor, region, engine.screen_blocked)
         print("Watching the screen. Ctrl+C to stop.")
     try:

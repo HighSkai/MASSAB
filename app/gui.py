@@ -42,6 +42,8 @@ HUD_SIZES = {"small": 9, "normal": 11, "large": 14}
 HUD_HEIGHTS = {"small": 30, "normal": 36, "large": 44}
 HUD_CHIPS = {"small": (8, 17), "normal": (8, 20), "large": (10, 24)}     # the CODE/RIDDLE chip's (pt, height)
 FIELD_WIDTH = 150
+AREA_TIP = ("Where codes and riddles are read from: x, y, width, height in pixels. "
+            "Blank reads the top half of the monitor, all the way across.")
 SCROLL_GUTTER = 8       # every page keeps room for a scroll bar, so panels line up from tab to tab
 MODEL_NAMES = {"4b": "4B", "2b": "2B"}
 MOTION_MODES = {"on": "On", "windows": "Windows", "off": "Off"}
@@ -49,7 +51,7 @@ DEFAULTS = {
     "words": 3, "end_gap": 6.0, "paste": True, "paste_window": "Roblox", "key_delay_ms": 15,
     "monitor": 1, "region": "", "model": DEFAULT_MODEL, "ai_autoload": True,
     "hud": True, "hud_corner": "bottom left", "hud_size": "normal", "hud_opacity": 85,
-    "overlay": "never", "overlay_zones": True, "overlay_reads": True, "overlay_labels": True,
+    "overlay": "never", "overlay_reads": True, "overlay_labels": True,
     "overlay_color": "#3cc8ff", "overlay_width": 2, "overlay_opacity": 90,
     "chat_facts": True, "motion": "on",
 }
@@ -623,21 +625,24 @@ class Panel(QMainWindow):
         self.fill_monitors()
         self.monitor_edit.currentIndexChanged.connect(
             lambda i: self.monitor_edit.itemData(i) is not None and self.set("monitor", self.monitor_edit.itemData(i)))
-        self.region_edit = self.bind("region", QLineEdit(placeholderText="Whole monitor"))
+        self.region_edit = self.bind("region", QLineEdit(placeholderText="Top half"))
         for field in (self.monitor_edit, self.region_edit):
             field.setFixedWidth(FIELD_WIDTH + 40)
         self.add_rows(right, [self.setting_row("Monitor", self.monitor_edit, tip="1 is your main screen"),
-                              self.setting_row("Area", self.region_edit,
-                                               tip="x, y, width, height in pixels. Blank reads the whole monitor.")])
+                              self.setting_row("Area", self.region_edit, tip=AREA_TIP)])
         buttons = QHBoxLayout()
         buttons.setContentsMargins(0, 14, 0, 0)
         buttons.setSpacing(8)
         pick = QPushButton("Pick on screen", objectName="primary")
         pick.setToolTip("Drag a box over the part of the screen to read")
         pick.clicked.connect(self.pick_area)
-        whole = QPushButton("Use whole monitor")
-        whole.clicked.connect(lambda: self.use_area(""))
+        top = QPushButton("Top half")
+        top.setToolTip("The default: all the way across, the top half down")
+        top.clicked.connect(lambda: self.use_area(""))
+        whole = QPushButton("Whole monitor")
+        whole.clicked.connect(self.use_whole_monitor)
         buttons.addWidget(pick)
+        buttons.addWidget(top)
         buttons.addWidget(whole)
         buttons.addStretch()
         right.addLayout(buttons)
@@ -654,8 +659,6 @@ class Panel(QMainWindow):
         self.swatches.picked.connect(lambda color: self.set("overlay_color", color))
         self.add_rows(c, [
             self.setting_row("Show", self.overlay_edit),
-            self.setting_row("Mark zones", self.bind("overlay_zones", Toggle()),
-                             tip="Dashed: where code lines are found. Dotted: where riddle rows are."),
             self.setting_row("Highlight reads", self.bind("overlay_reads", Toggle()),
                              tip="Box each line of text as it's read, while watching"),
             self.setting_row("Show what it read", self.bind("overlay_labels", Toggle()),
@@ -714,7 +717,7 @@ class Panel(QMainWindow):
         facts.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(FACTS_PATH)))
         self.add_rows(c, [self.setting_row("Model", self.model_edit,
                                            tip="4B gives the best answers. 2B uses less VRAM, and needs "
-                                               "setup_ai.py --model 2b"),
+                                               "app\\setup_ai.py --model 2b"),
                           self.setting_row("Load when MASSAB opens", self.bind("ai_autoload", Toggle()),
                                            tip="So the first riddle doesn't wait for it"),
                           self.setting_row("Fact sheet", facts, "Changes apply the next time the AI loads",
@@ -811,17 +814,23 @@ class Panel(QMainWindow):
             bad = True
         self.region_edit.setProperty("invalid", bad)
         self.region_edit.style().polish(self.region_edit)
-        self.region_edit.setToolTip("Should look like 0,120,1280,720" if bad else
-                                    "x, y, width, height in pixels. Blank reads the whole monitor.")
+        self.region_edit.setToolTip("Should look like 0,0,1920,540" if bad else AREA_TIP)
 
     def use_area(self, text):
         self.region_edit.setText(text)
         self.set("region", text)
 
+    def use_whole_monitor(self):
+        monitor = self.monitor_rect()
+        if monitor is None:
+            self.log("That monitor isn't connected.")
+            return
+        self.use_area(",".join(str(v) for v in monitor))
+
     def pick_area(self):
         monitor = self.monitor_rect()
         screen = screen_for(monitor) if monitor else QGuiApplication.primaryScreen()
-        current = self.current_area() if self.settings["region"] else None
+        current = self.current_area()
         self.picker = AreaPicker(screen, current)
         self.picker.picked.connect(self.area_picked)
         self.picker.destroyed.connect(lambda: setattr(self, "picker", None))
@@ -875,10 +884,9 @@ class Panel(QMainWindow):
         if area is None:
             caption = "Area isn't valid" if monitor else "No such monitor"
         else:
-            caption = f"{area[2]} × {area[3]}" + ("" if s["region"] else f"  ·  monitor {s['monitor']}")
+            caption = f"{area[2]} × {area[3]}" + ("" if s["region"] else "  ·  top half")
         self.preview.set_state(monitor, area, s["overlay_color"], caption)
-        self.overlay.set_look(s["overlay_color"], s["overlay_width"], s["overlay_opacity"], s["overlay_zones"],
-                              s["overlay_labels"])
+        self.overlay.set_look(s["overlay_color"], s["overlay_width"], s["overlay_opacity"], s["overlay_labels"])
         show = area is not None and (s["overlay"] == "always" or (s["overlay"] == "watching" and self.watching))
         if show:
             self.overlay.set_area(area)
@@ -904,7 +912,7 @@ class Panel(QMainWindow):
         try:
             region = parse_region(self.settings["region"])
         except ValueError:
-            self.log("The area to watch has to look like x,y,w,h, for example 0,120,1280,720.")
+            self.log("The area to watch has to look like x,y,w,h, for example 0,0,1920,540.")
             return
         self.engine.options = self.options()
         self.engine.reset()
@@ -1258,39 +1266,7 @@ class Panel(QMainWindow):
         super().closeEvent(event)
 
 
-def check():
-    """Try every part without opening a window, to prove a packaged build has
-    what it needs. A windowed exe has no console, so results go to check.txt."""
-    lines = []
-    engine = Engine(Options(no_copy=True), lambda kind, now, **e: lines.append(f"{kind}: {e}"))
-    try:
-        frame = next(frames_from_screen(RIDDLE_FPS))
-        lines.append(f"screen: {frame[1].shape}")
-        from rapidocr_onnxruntime import RapidOCR
-        image = np.zeros((48, 320, 3), np.uint8)
-        cv2.putText(image, "KEYBOARD", (10, 36), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-        read = RapidOCR().text_recognizer([image])[0][0][0]
-        lines.append(f"ocr: {read}")
-        answer = ""
-        if engine.start_ai():
-            solved = engine.solver.solve("month and year the first fuse machine in sab released")
-            answer = solved.answer
-            lines.append(f"model: {answer} in {solved.seconds:.2f} s, {len(engine.solver.facts.lines)} facts")
-        passed = read == "KEYBOARD" and answer == "AUGUST2025"
-    except Exception as e:
-        lines.append(f"failed: {e!r}")
-        passed = False
-    finally:
-        engine.stop_ai()
-    lines.append("PASSED" if passed else "FAILED")
-    with open(os.path.join(APP_DIR, "check.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
-    return 0 if passed else 1
-
-
 def main():
-    if "--check" in sys.argv:
-        return check()
     app = QApplication(sys.argv)
     apply(app)
     app.setWindowIcon(window_icon())

@@ -26,12 +26,9 @@ import cv2
 import numpy as np
 from rapidfuzz import fuzz
 
-from codereader import WORK_H, Read, dim_gain, has_lower, is_hint, normalize, similarity, to_work_scale, white_mask
+from codereader import Read, dim_gain, has_lower, is_hint, normalize, similarity, to_work_scale, white_mask
 from setup_ai import APP_DIR, DEFAULT_MODEL, LLAMA_SERVER, model_path
 
-# Where overlay rows can be, as fractions of the frame (x0, y0, x1, y1). It stops
-# above the Codes menu, whose white centered text would otherwise pass for a row.
-BAND = (0.02, 0.07, 0.98, 0.36)
 # A row's middle is this close to the screen's (fraction of width). The text is
 # what's centered, with the icon hanging off to the left of it.
 CENTER_TOLERANCE = 0.03
@@ -44,7 +41,7 @@ ROW_MIN_LETTERS = 4
 SHARED_HEIGHT = 0.5
 LETTER_HEIGHTS = 1.7    # the tallest letter of a row against the shortest; a sign is far taller
 LOOK_BACK = 3  # letters at the end of a chain to try, in case the last is a speck
-# Pixels at WORK_H between the middles of two rows of one wrapped message. They
+# Pixels at work scale between the middles of two rows of one wrapped message. They
 # measure ~24 apart, while separate overlay lines are ~52 apart.
 WRAP_PITCH = 36
 
@@ -74,17 +71,15 @@ def chain_letters(letters):
 
 
 def find_rows(frame):
-    """Find centered white text rows in a WORK_H frame: [(x0, y0, x1, y1, n_words)] top to bottom."""
-    fh, fw = frame.shape[:2]
-    bx, by = int(BAND[0] * fw), int(BAND[1] * fh)
-    band = frame[by:int(BAND[3] * fh), bx:int(BAND[2] * fw)]
-    _, _, stats, _ = cv2.connectedComponentsWithStats(white_mask(band))
+    """Find centered white text rows in a work-scale frame: [(x0, y0, x1, y1, n_words)] top to bottom."""
+    fw = frame.shape[1]
+    _, _, stats, _ = cv2.connectedComponentsWithStats(white_mask(frame))
     letters = [(int(x), int(y), int(w), int(h)) for x, y, w, h, area in stats[1:]
                if GLYPH_MIN_H <= h <= GLYPH_MAX_H and w <= 2 * GLYPH_MAX_H and area >= 6]
 
     rows = []
     for line in chain_letters(letters):
-        run = centered(line, fw / 2 - bx, fw)
+        run = centered(line, fw / 2, fw)
         if len(run) < ROW_MIN_LETTERS:
             continue
         height = float(np.median([b[3] for b in run]))
@@ -92,8 +87,7 @@ def find_rows(frame):
         for x, _, w, _ in run[1:]:
             words += x - edge > 0.37 * height
             edge = max(edge, x + w)
-        rows.append((bx + run[0][0], by + min(b[1] for b in run), bx + edge,
-                     by + max(b[1] + b[3] for b in run), words))
+        rows.append((run[0][0], min(b[1] for b in run), edge, max(b[1] + b[3] for b in run), words))
     return sorted(rows, key=lambda row: row[1])
 
 
@@ -112,16 +106,15 @@ def centered(line, center, fw):
 def read_rows(ocr, frame, boxes=None):
     """OCR every overlay message in a frame: [(text, score, n_words, y)] top to bottom.
 
-    Rows are found at WORK_H but read from the full-size frame, since small
+    Rows are found at work scale but read from the full-size frame, since small
     wrapped text loses a lot when it's scaled down. Given a list, boxes also
     gets each row's (x0, y0, x1, y1, text) in frame pixels, for drawing.
     """
     work = to_work_scale(frame)
-    fh, fw = work.shape[:2]
-    gain = dim_gain(cv2.cvtColor(work[int(BAND[1] * fh):int(BAND[3] * fh)], cv2.COLOR_BGR2HSV))
+    gain = dim_gain(cv2.cvtColor(work, cv2.COLOR_BGR2HSV))
     if gain != 1.0:
         work = cv2.convertScaleAbs(work, alpha=gain)
-    scale = frame.shape[0] / WORK_H
+    scale = frame.shape[1] / work.shape[1]
 
     messages = []
     last_middle = None
@@ -156,7 +149,7 @@ RIDDLE_MIN_WORDS, RIDDLE_MIN_LETTERS = 3, 6
 WHOLE_RIDDLE_WORDS = 5
 RIDDLE_MAX_WORDS = 20
 SENTENCE_MIN_LETTERS = 20
-SAME_PLACE = 20         # pixels at WORK_H a long message can drift between frames
+SAME_PLACE = 20         # pixels at work scale a long message can drift between frames
 # Hints and code intros are short ("it contains no numbers"). A longer line that
 # uses their words can be a riddle ("which update number added the divine fuse").
 SHORT_LINE_WORDS = 5
@@ -406,7 +399,7 @@ FUZZY_WORD = 85          # how close a word must be to match; OCR drops and swap
 GLUED_MIN_LETTERS = 6    # shorter words aren't worth trying to split
 STRAY_APOSTROPHE = re.compile(r"(?<=[a-z])'(?=[a-z]{2,})", re.I)
 STOPWORDS = set("""a about an and animal are as at be been but by came can come creature did do does for from game
-get gets got had has have how i in into is it its kind me month my no not of on or out sab sort steal brainrot
+get gets got had has have how i in into is it its kind many me month much my no not of on or out sab sort steal brainrot
 that the their this to type was were what when where which who why will with year you your""".split())
 # Facts go only to a riddle that names something from the game. These words do
 # it on their own; "sab", "brainrot" and "my" are stopwords for ranking, so the
@@ -423,7 +416,10 @@ UNREVIEWED = "## needs review"
 
 
 def words_of(text):
-    return {w for w in re.findall(r"[a-z0-9']+", text.lower()) if w not in STOPWORDS}
+    """The words that rank lines. A possessive is the word itself ("Sammy's" is
+    "sammy"), or the facts' many "Sammy's ..." lines never match "sammy"."""
+    words = (re.sub(r"'s$", "", w).replace("'", "") for w in re.findall(r"[a-z0-9']+", text.lower()))
+    return {w for w in words if w and w not in STOPWORDS}
 
 
 def plain(word):
@@ -651,7 +647,7 @@ class LlamaServer:
         if self.healthy():
             return
         if not os.path.exists(LLAMA_SERVER) or not os.path.exists(self.model):
-            raise FileNotFoundError("The AI isn't installed. Click Install AI, or run: python setup_ai.py")
+            raise FileNotFoundError("The AI isn't installed. Click Install AI, or run: python app\\setup_ai.py")
         self.process = subprocess.Popen(
             [LLAMA_SERVER, "-m", self.model, "--host", "127.0.0.1", "--port", str(self.port),
              "-ngl", "99", "-c", "2048", "-np", "1", "-fa", "on", "--reasoning", "off"],

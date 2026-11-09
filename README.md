@@ -35,14 +35,17 @@ Windows only, with an NVIDIA GPU for riddles. Tested on Windows 11, Python 3.14 
 ```bash
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python setup_ai.py
+.venv\Scripts\python app\setup_ai.py
+.venv\Scripts\python app\shortcut.py
 ```
 
-`setup_ai.py` downloads `llama-server` and the Qwen3.5-4B model (about 3 GB) into `bin\` and `models\`, and checks their hashes. Without them MASSAB still reads codes, but can't solve riddles.
+`setup_ai.py` downloads `llama-server` and the Qwen3.5-4B model (about 3 GB) into `app\bin\` and `app\models\`, and checks their hashes. Without them MASSAB still reads codes, but can't solve riddles.
+
+`shortcut.py` makes `MASSAB.lnk` in this folder, with the M from the window as its icon. Run it again if you move the folder.
 
 ## Usage
 
-1. Double-click `MASSAB.bat`.
+1. Double-click `MASSAB`.
 2. Open the Codes menu in Roblox and click the text box.
 3. Press **Start** in MASSAB and go back to the game.
 
@@ -68,9 +71,11 @@ The strip at the bottom left of the screen shows whether it's a code or a riddle
 
 ### The reading area and box
 
-MASSAB reads the whole monitor unless you give it an area. On the Overlay page, **Pick on screen** lets you drag a box over the part to read, or type it as `x,y,w,h` in pixels. The preview shows where it is, with the zones inside it where code lines and riddle rows are looked for.
+Codes and riddles are read from one area. By default it's the top half of the monitor, all the way across, which is where the overlay is. On the Overlay page, **Pick on screen** lets you drag a box over the part to read instead, or type it as `x,y,w,h` in pixels. **Whole monitor** reads all of it, and **Top half** goes back to the default. The preview shows where the area is.
 
-The **On-screen box** draws that area over the game: never, while watching, or always. It can also mark the two zones, and highlight each line of text as it's read, labeled with what OCR made of it. That's the quickest way to check MASSAB is looking in the right place. The box can't be clicked and is hidden from screen capture, so MASSAB never reads its own labels. Pick its color from the swatches if it's hard to see over your game.
+For a video that doesn't fill the screen, drag across the video's full width, from its top edge down about halfway. Text is sized against the area's width, so an area narrower than the video makes the overlay look bigger than it is.
+
+The **On-screen box** draws that area over the game: never, while watching, or always. It can also highlight each line of text as it's read, labeled with what OCR made of it. That's the quickest way to check MASSAB is looking in the right place. The box can't be clicked and is hidden from screen capture, so MASSAB never reads its own labels. Pick its color from the swatches if it's hard to see over your game.
 
 Settings that only take effect when watching starts, like the area and pasting, are greyed out until you press Stop.
 
@@ -78,7 +83,7 @@ Pages and controls move on springs. **Animations** in Settings turns them off, o
 
 ### Chat
 
-The Chat page talks to the same model that solves riddles, once it's loaded. With **Use the fact sheet** on, questions about the game get the matching lines of `data/sab_facts.md`, like riddles do. Replies are short, because the model only has room for about the last 3,000 characters of the chat.
+The Chat page talks to the same model that solves riddles, once it's loaded. With **Use the fact sheet** on, questions about the game get the matching lines of `app/data/sab_facts.md`, like riddles do. Replies are short, because the model only has room for about the last 3,000 characters of the chat.
 
 The model can only do one thing at a time, so a riddle on screen always comes first: it cuts off any reply that's still coming in.
 
@@ -90,11 +95,11 @@ A paste presses six keys with a short wait after each, 15 ms by default, so Robl
 
 **`GUESS`** means no line of the fact sheet covers the riddle, so the model answered from memory. Don't trust it.
 
-The riddle system prompt is `prompts/riddle_system.txt`, and takes effect the next time the AI loads. The reply has to keep the `ANSWER:` format. When the model replies `ANSWER: NONE`, nothing is pasted.
+The riddle system prompt is `app/prompts/riddle_system.txt`, and takes effect the next time the AI loads. The reply has to keep the `ANSWER:` format. When the model replies `ANSWER: NONE`, nothing is pasted.
 
 ## The fact sheet
 
-`data/sab_facts.md` is what makes trivia work. Without it the model answered `2024` when asked what month and year the first fuse machine released. The AI reads the few lines that best match each riddle, so a wrong line means a confident wrong answer. If those lines don't cover most of the riddle, it gets no facts at all, because loosely related ones pull it toward game terms.
+`app/data/sab_facts.md` is what makes trivia work. Without it the model answered `2024` when asked what month and year the first fuse machine released. The AI reads the few lines that best match each riddle, so a wrong line means a confident wrong answer. If those lines don't cover most of the riddle, it gets no facts at all, because loosely related ones pull it toward game terms.
 
 When Sammy reveals an answer, it's worth adding what it proves to the `## Answers Sammy confirmed` section.
 
@@ -107,7 +112,7 @@ Changes apply the next time the AI loads.
 ## Command line
 
 ```bash
-.venv\Scripts\python codereader.py
+.venv\Scripts\python app\codereader.py
 ```
 
 It reads codes and riddles together, like the window does. Without the AI installed it still reads codes.
@@ -122,7 +127,7 @@ It reads codes and riddles together, like the window does. Without the AI instal
 |---|---|
 | `--video FILE` | Read a recording instead of the screen |
 | `--monitor N` | Monitor to watch (default 1, the primary) |
-| `--region x,y,w,h` | Watch only this area, for a video that doesn't fill the screen |
+| `--region x,y,w,h` | Read only this area (default: the top half of the screen or video, all the way across) |
 | `--fps N` | Frames to check per second (default 12). The code reader only gets about 4 of them |
 | `--words N` | Copy once this many words are in (default 3, 0 = wait for the end) |
 | `--end-gap N` | Seconds with no new word before a code counts as finished (default 6) |
@@ -131,27 +136,16 @@ It reads codes and riddles together, like the window does. Without the AI instal
 | `--no-copy` | Don't touch the clipboard, which also stops pasting |
 | `--paste-window TITLE` | Paste into the window with this exact title (default `Roblox`) |
 | `--key-delay N` | Milliseconds to wait after each key of a paste (default 15) |
-| `--model NAME` | `4b` or the smaller `2b`, which needs `setup_ai.py --model 2b` |
+| `--model NAME` | `4b` or the smaller `2b`, which needs `app\setup_ai.py --model 2b` |
 | `--verbose` | Print every frame's OCR reads |
 
 ## Checking the speed
 
 ```bash
-.venv\Scripts\python bench_riddle.py
+.venv\Scripts\python tests\bench_riddle.py
 ```
 
 Run it while you're in a game, because Roblox competes with the model for the GPU. It reports the time from text appearing to the paste finishing, counting the worst case for where the text lands between two frames. It overwrites your clipboard, but presses no keys.
-
-## Building the .exe
-
-```bash
-.venv\Scripts\python -m pip install pyinstaller==6.22.3
-.venv\Scripts\python -m PyInstaller --noconfirm MASSAB.spec
-```
-
-The app is the folder `dist\MASSAB`. It keeps its own `data\`, `prompts\` and `fonts\`, and needs `bin\` and `models\` inside it. Its **Install AI** button downloads them.
-
-`MASSAB.exe --check` tries screen capture, OCR and the model without opening a window, and writes the result to `check.txt`.
 
 ## How it works
 
@@ -191,4 +185,4 @@ Riddles:
 
 ## Fonts
 
-`fonts\` holds Big Shoulders Display and Martian Mono, both under the SIL Open Font License. Their licenses are next to them. Body text uses Windows' Segoe UI.
+`app\fonts\` holds Big Shoulders Display and Martian Mono, both under the SIL Open Font License. Their licenses are next to them. Body text uses Windows' Segoe UI.
