@@ -160,7 +160,7 @@ Codes:
 1. **Find lines.** Each line is located by its icon: a yellow face with a red hat above and a red body below.
 2. **Read lines.** The crop is trimmed to the white letters and read with RapidOCR.
 3. **Track lines.** Lines are matched between frames by text and position, so each real line gets a vote from every frame it's seen in, and one-off misreads lose.
-4. **Assemble the code.** A line containing "code" starts collecting. Hint lines are skipped, and the words after them form the code. A hint, chatter or new intro after the words ends it.
+4. **Assemble the code.** A line containing "code" starts collecting. Hint lines are skipped, and the words after them form the code. A hint, chatter or new intro after the words ends it. The intro waits up to 20 seconds for the first word, even with nothing on screen, because Sammy often pauses after "the code is...".
 
 Riddles:
 

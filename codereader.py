@@ -354,6 +354,8 @@ def agree(a, b):
 WEAK_MATCH, MOVED_DOWN, VANISHED, MISSED_LINE, SAME_PLACE = 60, 45, 30, 30, 15
 NEW_LINE, NEW_ABOVE, NEW_UNREAD = 10, 25, 40
 MOVE_SLACK = 20  # pixels at WORK_H; lines are ~52px apart
+# Seconds an intro waits for its first word ("the code is..." then a pause).
+INTRO_WAIT = 20.0
 
 
 class CodeReader:
@@ -537,10 +539,13 @@ class CodeReader:
             # The line that ended this code may start the next one.
             self._close(code, max(s.order for s in self.slots if s.order < end.order))
 
-        quiet = t - max(s.first_seen for s in self.slots) >= self.end_gap
+        # Before the first word the streamer is often building suspense: the
+        # intro can scroll away and the overlay sit empty for several seconds.
+        gap = self.end_gap if words else max(self.end_gap, INTRO_WAIT)
+        quiet = t - max(s.first_seen for s in self.slots) >= gap
         # An empty overlay ends the code, unless it's still short: then the
         # streamer may just be typing slowly.
-        gone = (empty and self.last_lines_t is not None and t - self.last_lines_t >= self.empty_gap
+        gone = (empty and words and self.last_lines_t is not None and t - self.last_lines_t >= self.empty_gap
                 and len(words) >= self.expect_words)
         if quiet or gone:
             self.finish()
