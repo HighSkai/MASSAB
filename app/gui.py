@@ -33,7 +33,8 @@ from overlay import (PASSIVE_FLAGS, AreaOverlay, AreaPicker, AreaPreview, captur
 from riddle import FACTS_PATH, gpu_memory
 from setup_ai import APP_DIR, DEFAULT_MODEL, MODELS, ai_installed
 from theme import (TEXT3, Backdrop, Columns, Light, NavRail, PipelineBar, Rail, Segmented, Swatches, Toggle,
-                   Sheet, apply, caps, dark_title_bar, hop, label, separator, set_motion, window_icon)
+                   Sheet, apply, caps, dark_title_bar, hop, label, separator, set_motion, use_own_taskbar_icon,
+                   window_icon)
 
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 OVERLAY_WHEN = {"never": "Never", "watching": "Watching", "always": "Always"}
@@ -1267,6 +1268,7 @@ class Panel(QMainWindow):
 
 
 def main():
+    use_own_taskbar_icon()
     app = QApplication(sys.argv)
     apply(app)
     app.setWindowIcon(window_icon())

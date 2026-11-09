@@ -286,8 +286,11 @@ def colorref(hex_color):
     return color.red() | color.green() << 8 | color.blue() << 16
 
 
-def window_icon(size=64):
-    """No logo: the taskbar gets the title's first letter, set like the title."""
+ICON_SIZES = (16, 20, 24, 32, 40, 48, 64, 128, 256)
+
+
+def icon_pixmap(size):
+    """The logo: the title's first letter, set like the title. app/massab.ico is this too."""
     pixmap = QPixmap(size, size)
     pixmap.fill(QColor(GROUND))
     p = QPainter(pixmap)
@@ -298,7 +301,26 @@ def window_icon(size=64):
     p.setPen(QColor(INK))
     p.drawText(QRect(0, 0, size, size), Qt.AlignmentFlag.AlignCenter, "M")
     p.end()
-    return QIcon(pixmap)
+    return pixmap
+
+
+def window_icon():
+    """The logo drawn at each size Windows asks for, so the taskbar and Alt+Tab stay sharp."""
+    icon = QIcon()
+    for size in ICON_SIZES:
+        icon.addPixmap(icon_pixmap(size))
+    return icon
+
+
+def use_own_taskbar_icon(app_id="MASSAB.App"):
+    """Run under MASSAB's own taskbar identity. Without one, Windows groups the
+    window with pythonw.exe and shows Python's icon instead of the M. Call it
+    before any window is made."""
+    if sys.platform == "win32":
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        except (AttributeError, OSError):
+            pass
 
 
 # --- springs -------------------------------------------------------------------------
