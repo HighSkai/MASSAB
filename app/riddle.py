@@ -256,6 +256,11 @@ class Part:
     def matches(self, text):
         return any(similarity(normalize(text), normalize(known)) >= SAME_TEXT for known in self.reads)
 
+    def overlaps(self, text):
+        """Is most of one inside the other, as with a misread or a message read only partly?"""
+        letters = normalize(text)
+        return any(fuzz.partial_ratio(letters, normalize(known)) >= SAME_TEXT for known in self.reads)
+
 
 class RiddleTracker:
     """Turns per-frame messages into riddles.
@@ -347,13 +352,15 @@ class RiddleTracker:
             self.parts.append(Part(text, n_words, y, t, stamp))
 
     def _part_for(self, text, n_words, y, t):
-        """The part this is another read of. A long message misread into
-        something unrecognizable is still sitting in the same place."""
+        """The part this is another read of. A long message misread, or read
+        only partly, is still sitting in the same place and shares most of its
+        text. Chatter that slides up into that place once the riddle expires
+        doesn't, and taking it in would replace the riddle with it."""
         known = next((p for p in self.parts if p.matches(text)), None)
         if known or n_words < WHOLE_RIDDLE_WORDS:
             return known
         return next((p for p in self.parts if p.n_words >= WHOLE_RIDDLE_WORDS and p.last_seen < t
-                     and t - p.last_seen <= JOIN_GAP and abs(p.y - y) <= SAME_PLACE), None)
+                     and t - p.last_seen <= JOIN_GAP and abs(p.y - y) <= SAME_PLACE and p.overlaps(text)), None)
 
     def _bad_read_of_intro(self, text):
         """"this isfor100 dragohsBee" hides the words that mark an intro, a sign
