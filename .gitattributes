@@ -1,0 +1,2 @@
+# Windows needs CRLF in batch files, also in a GitHub "Download ZIP".
+*.bat text eol=crlf
