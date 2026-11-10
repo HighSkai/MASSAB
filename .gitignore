@@ -3,7 +3,15 @@ __pycache__/
 *.pyc
 
 # Tests stay local. testdata is cut from other people's videos.
-sim.py
-test_*.py
-testdata/
+tests/sim.py
+tests/test_*.py
+tests/testdata/
 *.mp4
+
+# Downloaded by setup_ai.py, too big for git.
+app/bin/
+app/models/
+
+# Per-user settings, and the shortcut app/shortcut.py makes for this PC.
+app/settings.json
+MASSAB.lnk

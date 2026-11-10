@@ -1,0 +1,706 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T17:30:55+00:00",
+  "title": "Design System: MASSAB",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Ground",
+        "canonical": "oklch(15.0% 0.002 286.1)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "oklch(18.7% 0.002 286.2)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "oklch(22.3% 0.004 286.1)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field",
+        "canonical": "oklch(16.4% 0.002 286.2)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "popup": {
+        "role": "neutral",
+        "displayName": "Popup",
+        "canonical": "oklch(19.6% 0.002 286.2)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "oklch(25.7% 0.006 286.0)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828285",
+          "#a5a5a8",
+          "#c9c9cb",
+          "#eeeef0"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "oklch(35.1% 0.010 285.9)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#414145",
+          "#616166",
+          "#818288",
+          "#a4a4aa",
+          "#c8c9cd",
+          "#eeeef1"
+        ]
+      },
+      "rule-hover": {
+        "role": "neutral",
+        "displayName": "Hover Rule",
+        "canonical": "oklch(45.2% 0.011 285.9)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#414146",
+          "#606166",
+          "#818189",
+          "#a4a4ab",
+          "#c8c8cd",
+          "#eeeef1"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Instrument Ink",
+        "canonical": "oklch(94.6% 0.001 286.4)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9c9",
+          "#eeeeef"
+        ]
+      },
+      "white": {
+        "role": "primary",
+        "displayName": "Paper White",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink-pressed": {
+        "role": "primary",
+        "displayName": "Pressed Ink",
+        "canonical": "oklch(83.7% 0.006 286.3)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424244",
+          "#616164",
+          "#828285",
+          "#a5a5a8",
+          "#c9c9cb",
+          "#eeeef0"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "canonical": "oklch(69.2% 0.012 286.1)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#414146",
+          "#606067",
+          "#818189",
+          "#a4a4ab",
+          "#c8c8ce",
+          "#eeeef2"
+        ]
+      },
+      "text-tertiary": {
+        "role": "neutral",
+        "displayName": "Tertiary Text",
+        "canonical": "oklch(60.6% 0.013 286.0)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252528",
+          "#414146",
+          "#606067",
+          "#81818a",
+          "#a4a4ac",
+          "#c8c8ce",
+          "#eeeef2"
+        ]
+      },
+      "ice": {
+        "role": "tertiary",
+        "displayName": "Focus Ice",
+        "canonical": "oklch(81.8% 0.048 241.5)",
+        "tonalRamp": [
+          "#070c10",
+          "#1c262e",
+          "#344451",
+          "#4e6476",
+          "#6a869c",
+          "#91a9bb",
+          "#b9ccdb",
+          "#e3f1fb"
+        ]
+      },
+      "slab": {
+        "role": "primary",
+        "displayName": "Ice Slab",
+        "canonical": "oklch(93.9% 0.012 239.9)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#232527",
+          "#3f4346",
+          "#5c6266",
+          "#7c8389",
+          "#a0a6aa",
+          "#c5cacd",
+          "#eceff1"
+        ]
+      },
+      "slab-ink-secondary": {
+        "role": "primary",
+        "displayName": "Slab Secondary",
+        "canonical": "oklch(43.2% 0.024 246.0)",
+        "tonalRamp": [
+          "#090b0e",
+          "#21262a",
+          "#3c434a",
+          "#58636c",
+          "#778490",
+          "#9ca7b0",
+          "#c2cad2",
+          "#e9eff5"
+        ]
+      },
+      "slab-ink-tertiary": {
+        "role": "primary",
+        "displayName": "Slab Tertiary",
+        "canonical": "oklch(61.7% 0.025 248.2)",
+        "tonalRamp": [
+          "#090b0e",
+          "#21262a",
+          "#3c434a",
+          "#58626d",
+          "#778491",
+          "#9ca6b1",
+          "#c2cad3",
+          "#e9eff5"
+        ]
+      },
+      "slab-track": {
+        "role": "tertiary",
+        "displayName": "Timing Track",
+        "canonical": "oklch(87.4% 0.016 241.8)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#222628",
+          "#3e4347",
+          "#5b6268",
+          "#7b848b",
+          "#9fa6ac",
+          "#c4cacf",
+          "#ebeff2"
+        ]
+      },
+      "stage-read": {
+        "role": "tertiary",
+        "displayName": "Read Stage",
+        "canonical": "oklch(67.5% 0.026 244.3)",
+        "tonalRamp": [
+          "#090b0e",
+          "#21262a",
+          "#3b434a",
+          "#57636d",
+          "#768491",
+          "#9ba7b1",
+          "#c1cbd3",
+          "#e9eff5"
+        ]
+      },
+      "stage-ai": {
+        "role": "tertiary",
+        "displayName": "AI Stage Steel",
+        "canonical": "oklch(48.8% 0.064 244.1)",
+        "tonalRamp": [
+          "#060c11",
+          "#192732",
+          "#2f4556",
+          "#47657d",
+          "#6187a6",
+          "#8aa9c3",
+          "#b4cde1",
+          "#e0f1ff"
+        ]
+      },
+      "mint": {
+        "role": "secondary",
+        "displayName": "Signal Mint",
+        "canonical": "oklch(81.7% 0.148 159.0)",
+        "tonalRamp": [
+          "#001006",
+          "#002e19",
+          "#00502f",
+          "#007547",
+          "#009c61",
+          "#5bbb8a",
+          "#96dbb4",
+          "#ccfce0"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Signal Amber",
+        "canonical": "oklch(80.4% 0.146 75.3)",
+        "tonalRamp": [
+          "#140800",
+          "#371f00",
+          "#5e3900",
+          "#885500",
+          "#b37300",
+          "#cf9a49",
+          "#ebc187",
+          "#ffeac2"
+        ]
+      },
+      "amber-ink": {
+        "role": "secondary",
+        "displayName": "Amber Ink",
+        "canonical": "oklch(18.9% 0.028 79.8)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#28241e",
+          "#474138",
+          "#686053",
+          "#8b8170",
+          "#aca496",
+          "#cfc8bd",
+          "#f3eee6"
+        ]
+      },
+      "coral": {
+        "role": "secondary",
+        "displayName": "Signal Coral",
+        "canonical": "oklch(69.1% 0.199 23.9)",
+        "tonalRamp": [
+          "#1c0203",
+          "#470c0e",
+          "#771b1e",
+          "#ab2c30",
+          "#e04044",
+          "#f87873",
+          "#ffa9a3",
+          "#ffdad4"
+        ]
+      },
+      "coral-ink": {
+        "role": "secondary",
+        "displayName": "Coral Ink",
+        "canonical": "oklch(83.9% 0.089 25.9)",
+        "tonalRamp": [
+          "#130807",
+          "#361d1b",
+          "#5c3632",
+          "#86504b",
+          "#b16d67",
+          "#ce948e",
+          "#ebbcb7",
+          "#ffe6e2"
+        ]
+      },
+      "overlay-cyan": {
+        "role": "tertiary",
+        "displayName": "Overlay Cyan",
+        "canonical": "oklch(78.3% 0.139 229.4)",
+        "tonalRamp": [
+          "#000d17",
+          "#002a3d",
+          "#004967",
+          "#006c95",
+          "#0090c3",
+          "#4fb2dd",
+          "#8ed4f5",
+          "#c7f7ff"
+        ]
+      },
+      "coral-wash": {
+        "role": "secondary",
+        "displayName": "Coral Wash",
+        "canonical": "rgba(255, 92, 92, 0.08)",
+        "note": "Qt alpha 20/255 behind invalid fields and error bubbles; the running STOP hover uses 28/255 (0.11)."
+      },
+      "strip-ground": {
+        "role": "neutral",
+        "displayName": "Strip Ground",
+        "canonical": "rgba(11, 11, 12, 0.85)",
+        "note": "Ground at the strip's opacity setting (default 85%); its hairline is rgba(255, 255, 255, 0.18) scaled by the same opacity."
+      },
+      "tag-ground": {
+        "role": "neutral",
+        "displayName": "Tag Ground",
+        "canonical": "rgba(11, 11, 12, 0.91)",
+        "note": "Qt alpha 232/255 behind box tags; the picker's card uses 0.96 with a rgba(255, 255, 255, 0.27) border over a rgba(0, 0, 0, 0.59) screen dim."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The last answer only; 44pt shrinking to 14pt to fit."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "The text title MASSAB in the rail; also the taskbar M."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Uppercase page title in the header."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "The answer's total time on the slab."
+      },
+      "title-empty": {
+        "displayName": "Title Empty",
+        "purpose": "The empty Chat title, uppercase."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Setting names, riddle text, chat, explanations."
+      },
+      "body-hint": {
+        "displayName": "Body Hint",
+        "purpose": "Hints under setting names and panel titles, in Tertiary Text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Panel titles, status line, buttons; uppercase."
+      },
+      "label-nav": {
+        "displayName": "Label Nav",
+        "purpose": "Rail tabs; uppercase."
+      },
+      "label-small": {
+        "displayName": "Label Small",
+        "purpose": "Chips, small buttons, segmented cells; uppercase."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "Field values, drop-downs and the activity log."
+      },
+      "data-small": {
+        "displayName": "Data Small",
+        "purpose": "Timing captions and shortcut numbers."
+      }
+    },
+    "shadows": [],
+    "shadowsNote": "None. The system is flat; depth is value steps (ground, panel, raised) and 1px rules.",
+    "motion": [
+      {
+        "name": "spring-rail",
+        "duration": "0.42s",
+        "bounce": 0.35,
+        "kick": "12 px/s per px of travel, max 600 px/s",
+        "value": "cubic-bezier(0.34, 1.36, 0.64, 1) 420ms",
+        "purpose": "The rail's selection block springing to the chosen tab; overshoots about 4-5px on a one-tab move."
+      },
+      {
+        "name": "spring-hop",
+        "duration": "0.5s",
+        "bounce": 0.35,
+        "kick": "450 px/s",
+        "travel": "36px",
+        "value": "cubic-bezier(0.34, 1.4, 0.64, 1) 500ms",
+        "purpose": "Page enter: later tabs rise from below, earlier ones drop from above; overshoots about 5px."
+      },
+      {
+        "name": "spring-hop-fade-in",
+        "duration": "0.3s",
+        "bounce": 0,
+        "value": "cubic-bezier(0.22, 1, 0.36, 1) 300ms",
+        "purpose": "The entering page's opacity, 0 to 1."
+      },
+      {
+        "name": "spring-hop-leave",
+        "duration": "0.22s",
+        "bounce": 0,
+        "travel": "10px opposite the entering page",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1) 220ms",
+        "purpose": "The old page's snapshot fades out and drifts away."
+      },
+      {
+        "name": "spring-toggle",
+        "duration": "0.34s",
+        "bounce": 0.32,
+        "value": "cubic-bezier(0.34, 1.34, 0.64, 1) 340ms",
+        "purpose": "Toggle knob and fill."
+      },
+      {
+        "name": "spring-segmented",
+        "duration": "0.36s",
+        "bounce": 0.3,
+        "value": "cubic-bezier(0.34, 1.3, 0.64, 1) 360ms",
+        "purpose": "The segmented control's ink block sliding to the chosen cell."
+      },
+      {
+        "name": "spring-grow",
+        "duration": "0.6s",
+        "bounce": 0,
+        "value": "cubic-bezier(0.22, 1, 0.36, 1) 600ms",
+        "purpose": "The timing bar growing from zero on a new answer."
+      },
+      {
+        "name": "spring-model",
+        "value": "stiffness (2*pi/duration)^2, mass 1, damping ratio 1 - bounce; retargets keep current velocity; 8ms ticks",
+        "purpose": "How every spring is computed (theme.spring_state and theme.Spring). The cubic-beziers above are web approximations."
+      },
+      {
+        "name": "motion-setting",
+        "value": "On / Windows / Off",
+        "purpose": "Off, or Windows with Windows' animation effects off, makes every spring jump to its end and skips page hops."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "columns-stack",
+        "value": "720px",
+        "note": "Content width below which side-by-side panels stack."
+      },
+      {
+        "name": "window-default",
+        "value": "980x640"
+      },
+      {
+        "name": "window-min",
+        "value": "900x600"
+      },
+      {
+        "name": "rail",
+        "value": "200px"
+      }
+    ],
+    "units": "Sizes are Qt points (pt) and px; Qt style-sheet alphas (0-255) are converted to CSS decimals here."
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The white action block: START, Send, Load AI, Pick on screen.",
+      "html": "<button class=\"ds-btn-primary\">Start</button>",
+      "css": ".ds-btn-primary { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8.5pt; text-transform: uppercase; color: #0b0b0c; background: #ededee; border: 1px solid #ededee; border-radius: 2px; padding: 8px 14px; min-width: 72px; cursor: pointer; transition: background 120ms, border-color 120ms; } .ds-btn-primary:hover { background: #ffffff; border-color: #ffffff; } .ds-btn-primary:active { background: #c9c9cd; border-color: #c9c9cd; } .ds-btn-primary:focus-visible { outline: none; border-color: #a9c8e0; }"
+    },
+    {
+      "name": "Start Button (running)",
+      "kind": "button",
+      "refersTo": "button-start-running",
+      "description": "START while watching becomes a coral-outlined STOP.",
+      "html": "<button class=\"ds-btn-stop\">Stop</button>",
+      "css": ".ds-btn-stop { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8.5pt; text-transform: uppercase; color: #ff5c5c; background: transparent; border: 1px solid #ff5c5c; border-radius: 2px; height: 34px; padding: 0 22px; min-width: 72px; cursor: pointer; } .ds-btn-stop:hover { background: rgba(255, 92, 92, 0.11); } .ds-btn-stop:focus-visible { outline: 1px solid #a9c8e0; outline-offset: 1px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Default and small buttons on dark panels.",
+      "html": "<button class=\"ds-btn-outline\">Clear</button>",
+      "css": ".ds-btn-outline { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8pt; text-transform: uppercase; color: #ededee; background: transparent; border: 1px solid #3a3a40; border-radius: 2px; padding: 5px 10px; cursor: pointer; transition: background 120ms, border-color 120ms; } .ds-btn-outline:hover { background: #1b1b1d; border-color: #55555c; } .ds-btn-outline:active { background: #0f0f10; } .ds-btn-outline:focus-visible { outline: none; border-color: #a9c8e0; } .ds-btn-outline:disabled { color: #55555c; border-color: #232326; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Fields, spin boxes and drop-downs: values in mono on the field fill.",
+      "html": "<input class=\"ds-input\" value=\"Roblox\" />",
+      "css": ".ds-input { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-size: 8.5pt; color: #ededee; background: #0e0e0f; border: 1px solid #3a3a40; border-radius: 2px; padding: 7px 10px; width: 150px; outline: none; } .ds-input:hover { border-color: #55555c; } .ds-input:focus, .ds-input:focus-visible { border-color: #a9c8e0; } .ds-input[aria-invalid=true] { border-color: #ff5c5c; background: rgba(255, 92, 92, 0.08); } .ds-input::selection { background: #ededee; color: #0b0b0c; }"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "Mono tabs with Ctrl numbers; a raised block with a 1px ink bar springs to the chosen tab.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-rail-tab is-active\" href=\"#\"><span>Home</span><span>1</span></a><a class=\"ds-rail-tab\" href=\"#\"><span>Chat</span><span>2</span></a><a class=\"ds-rail-tab\" href=\"#\"><span>Overlay</span><span>3</span></a><a class=\"ds-rail-tab\" href=\"#\"><span>Settings</span><span>4</span></a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 2px; width: 184px; padding: 8px; background: #0b0b0c; border-right: 1px solid #232326; } .ds-rail-tab { display: flex; justify-content: space-between; align-items: center; height: 38px; padding: 0 14px; font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 9pt; text-transform: uppercase; color: #9b9ba3; text-decoration: none; box-shadow: inset 1px 0 0 transparent; transition: background 420ms cubic-bezier(0.34, 1.36, 0.64, 1), color 120ms; } .ds-rail-tab span:last-child { font-weight: 400; font-size: 8pt; color: #81818a; } .ds-rail-tab:hover { color: #ededee; } .ds-rail-tab.is-active { color: #ededee; background: #1b1b1d; box-shadow: inset 1px 0 0 #ededee; } .ds-rail-tab.is-active span:last-child { color: #9b9ba3; } .ds-rail-tab:focus-visible { outline: 1px solid #a9c8e0; outline-offset: -1px; }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Kind, PASTED/COPIED and the amber GUESS chip on the answer slab.",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-chip\">Riddle</span><span class=\"ds-chip ds-chip-pasted\">Pasted</span><span class=\"ds-chip ds-chip-guess\">Guess: no fact matched</span></div>",
+      "css": ".ds-chips { display: flex; gap: 6px; padding: 12px; background: #e4ecf2; } .ds-chip { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8pt; text-transform: uppercase; display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid #0b0b0c; border-radius: 2px; color: #0b0b0c; } .ds-chip-pasted { background: #0b0b0c; color: #e4ecf2; } .ds-chip-guess { background: #f5b041; border-color: #f5b041; color: #1a1205; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A flat ruled panel with a mono title, a hint, and setting rows split by 1px rules.",
+      "html": "<section class=\"ds-panel\"><h3>Pasting</h3><div class=\"ds-row\"><span>Paste into</span><span class=\"ds-val\">Roblox</span></div><div class=\"ds-row\"><span>Wait after each key<small>Raise it if pastes go missing</small></span><span class=\"ds-val\">15 ms</span></div></section>",
+      "css": ".ds-panel { width: 340px; padding: 18px; background: #131314; border: 1px solid #232326; border-radius: 2px; color: #ededee; font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 10pt; } .ds-panel h3 { margin: 0 0 8px; font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8.5pt; text-transform: uppercase; color: #9b9ba3; } .ds-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 0; } .ds-row + .ds-row { border-top: 1px solid #232326; } .ds-row small { display: block; font-size: 9pt; color: #81818a; margin-top: 3px; } .ds-val { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-size: 8.5pt; padding: 7px 10px; background: #0e0e0f; border: 1px solid #3a3a40; border-radius: 2px; }"
+    },
+    {
+      "name": "Answer Slab",
+      "kind": "custom",
+      "refersTo": "answer-slab",
+      "description": "The one light slab: answer, riddle line, chips, total and the read/AI/paste timing bar.",
+      "html": "<section class=\"ds-slab\"><div class=\"ds-slab-answer\">FISHINOCLOWNINO15</div><p>What brainrot is scarino crowino a reskin of?</p><div class=\"ds-slab-meta\"><span class=\"ds-slab-chip\">Riddle</span><span class=\"ds-slab-chip ds-on\">Pasted</span><span class=\"ds-slab-total\">0.94 s</span></div><div class=\"ds-bar\"><i style=\"flex:42;background:#8a99a6\"></i><i style=\"flex:41;background:#3f6482\"></i><i style=\"flex:11;background:#0b0b0c\"></i></div><div class=\"ds-legend\"><span><b style=\"background:#8a99a6\"></b>READ 0.42 s</span><span><b style=\"background:#3f6482\"></b>AI 0.41 s</span><span><b style=\"background:#0b0b0c\"></b>PASTE 0.11 s</span></div></section>",
+      "css": ".ds-slab { width: 520px; padding: 22px; background: #e4ecf2; color: #0b0b0c; border-radius: 2px; } .ds-slab-answer { font-family: 'Big Shoulders Display', 'Segoe UI', sans-serif; font-weight: 900; font-size: 44pt; line-height: 1; } .ds-slab p { font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif; font-size: 10pt; color: #46525d; margin: 8px 0 0; } .ds-slab-meta { display: flex; align-items: flex-end; gap: 6px; margin-top: 18px; } .ds-slab-chip { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8pt; text-transform: uppercase; height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border: 1px solid #0b0b0c; border-radius: 2px; } .ds-slab-chip.ds-on { background: #0b0b0c; color: #e4ecf2; } .ds-slab-total { margin-left: auto; font-family: 'Big Shoulders Display', 'Segoe UI', sans-serif; font-weight: 800; font-size: 24pt; line-height: 1; } .ds-bar { display: flex; gap: 2px; height: 6px; margin-top: 10px; background: #cdd7df; transform-origin: left; animation: ds-grow 600ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-bar i { display: block; } .ds-legend { display: flex; gap: 20px; margin-top: 10px; font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-size: 8pt; color: #46525d; } .ds-legend b { display: inline-block; width: 6px; height: 6px; margin-right: 6px; } @keyframes ds-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } } @media (prefers-reduced-motion: reduce) { .ds-bar { animation: none; } }"
+    },
+    {
+      "name": "Toggle and Segmented",
+      "kind": "custom",
+      "refersTo": "toggle",
+      "description": "Square switch and segmented control; the ink block springs with a small overshoot.",
+      "html": "<div class=\"ds-ctl\"><label class=\"ds-toggle\"><input type=\"checkbox\" checked><span></span></label><div class=\"ds-seg\"><button class=\"is-on\">On</button><button>Windows</button><button>Off</button></div></div>",
+      "css": ".ds-ctl { display: flex; gap: 24px; align-items: center; padding: 16px; background: #131314; } .ds-toggle input { position: absolute; opacity: 0; } .ds-toggle span { position: relative; display: block; width: 38px; height: 19px; background: #131314; border: 1px solid #3a3a40; cursor: pointer; transition: background 340ms cubic-bezier(0.34, 1.34, 0.64, 1); } .ds-toggle span::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; background: #9b9ba3; transition: transform 340ms cubic-bezier(0.34, 1.34, 0.64, 1), background 120ms; } .ds-toggle input:checked + span { background: #ededee; border-color: #ededee; } .ds-toggle input:checked + span::after { transform: translateX(19px); background: #0b0b0c; } .ds-toggle input:focus-visible + span { outline: 1px solid #a9c8e0; outline-offset: 2px; } .ds-seg { display: flex; height: 30px; border: 1px solid #3a3a40; background: #0e0e0f; } .ds-seg button { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8pt; text-transform: uppercase; color: #9b9ba3; background: transparent; border: none; border-left: 1px solid #232326; padding: 0 13px; cursor: pointer; transition: background 360ms cubic-bezier(0.34, 1.3, 0.64, 1), color 120ms; } .ds-seg button:first-child { border-left: none; } .ds-seg button:hover { color: #ededee; } .ds-seg button.is-on { background: #ededee; color: #0b0b0c; } .ds-seg button:focus-visible { outline: 1px solid #a9c8e0; outline-offset: -1px; } @media (prefers-reduced-motion: reduce) { .ds-toggle span, .ds-toggle span::after, .ds-seg button { transition: none; } }"
+    },
+    {
+      "name": "Game Strip",
+      "kind": "custom",
+      "refersTo": "game-strip",
+      "description": "The passive in-game strip: dark, square, white text; mint PASTED and a separate amber GUESS flag.",
+      "html": "<div class=\"ds-strip\"><span class=\"ds-strip-kind\">Riddle</span><span class=\"ds-strip-answer\">FISHINOCLOWNINO15</span><span class=\"ds-strip-sec\">0.94 s</span><span class=\"ds-strip-state\">Pasted</span><span class=\"ds-strip-flag\">Guess</span></div>",
+      "css": ".ds-strip { display: inline-flex; align-items: center; gap: 10px; height: 36px; padding: 0 14px 0 7px; background: rgba(11, 11, 12, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 2px; color: #ffffff; pointer-events: none; user-select: none; } .ds-strip-kind { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 8pt; text-transform: uppercase; height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 1px; background: #ededee; color: #0b0b0c; } .ds-strip-answer { font-family: 'Big Shoulders Display', 'Segoe UI', sans-serif; font-weight: 900; font-size: 16pt; } .ds-strip-sec { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-size: 10pt; color: rgba(205, 205, 212, 0.82); } .ds-strip-state { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 10pt; text-transform: uppercase; color: #5ee0a0; } .ds-strip-flag { font-family: 'Martian Mono', 'Cascadia Mono', Consolas, monospace; font-weight: 500; font-size: 10pt; text-transform: uppercase; color: #f5b041; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Black Instrument Sheet",
+    "overview": "MASSAB is laid out like a black instrument sheet. Flat near-black planes are separated by 1px rules. Names, page titles and the answer are set in tall condensed poster type, and every label, number and log line is in crisp monospace. Nothing glows and nothing is glass. There is no light source, so depth comes only from value steps and lines. The one bright object is the light slab holding the last answer, and that's where the eye goes first.\n\nThe window is dense but calm, a setup and review console. The player glances at it, presses START, and goes back to the game. Everything drawn over the game follows the same rules: dark, square and white-lettered, and it never gets in the way. Motion is springy and brief, in the style Apple describes: springs set by duration and bounce that keep their velocity when interrupted, that move in the direction of the page you're going to, and that can be turned off.\n\nThis replaces the earlier dark-glass console. Glows, gradients, glass panels and rounded capsules are confirmed rejections.",
+    "keyCharacteristics": [
+      "Flat near-black planes stepped by value (ground, panel, raised), cut by 1px rules.",
+      "Square geometry: 2px corners on framed controls, true squares on painted controls.",
+      "Big Shoulders Display for names and the answer, Martian Mono in capitals for every label and number, and Segoe UI Variable for sentences.",
+      "One light slab per screen, and it holds the last answer.",
+      "Color is a signal, never decoration: mint, amber and coral each carry one meaning.",
+      "Spring motion with bounce at or under 0.35, which snaps into place when motion is off."
+    ],
+    "rules": [
+      {
+        "name": "The One Slab Rule",
+        "body": "The last answer sits on the only light surface on screen. No other panel, banner or card may be light.",
+        "section": "colors"
+      },
+      {
+        "name": "The Signal Rule",
+        "body": "Mint means live or pasted, amber means guess or loading, coral means stop, error or low VRAM. A signal color is never decoration, and a meaning is never shown in any other color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ice Is Focus Rule",
+        "body": "Focus Ice draws focus rings and nothing else: no fills, no text, no selected states.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Readout Rule",
+        "body": "Every label, number, button, chip and log line is in Martian Mono, in capitals where it labels something. Big Shoulders is reserved for the title, page titles, the total and the answer.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lowercase Unit Rule",
+        "body": "Units stay lowercase inside capitalized mono text: \"READ 0.42 s\", \"0.94 s\", \"15 ms\". Capitalize the label, never the unit.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Light Source Rule",
+        "body": "Nothing casts a shadow, glows or is lit by a gradient. To separate two things, step the value or draw a 1px rule.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Square Rule",
+        "body": "Corners never go above 2px. There are no pills, no circles and no capsules: a status light is a 7px square, and a toggle knob is a 13px square.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** separate surfaces only with the three value steps (ground, panel, raised) and 1px rules.",
+      "**Do** keep the answer slab the one light surface on screen, and give the last answer Display type on it.",
+      "**Do** set every label, button, chip and number in Martian Mono capitals, with units left lowercase (\"READ 0.42 s\").",
+      "**Do** flag every guess in amber, and show PASTED next to it when a guess was pasted. Never let one replace the other.",
+      "**Do** keep anything drawn over the game dark, square and white-lettered, and make it impossible to click or focus. The picker is the one exception, and only while dragging.",
+      "**Do** drive motion with springs defined by duration and bounce, with bounce at or under 0.35, and carry the current velocity into any retarget.",
+      "**Do** move pages along their tab order: later tabs come from below, earlier ones from above.",
+      "**Do** snap every spring to its end when Animations is Off, or when it's set to Windows and Windows' animation effects are off.",
+      "**Do** keep feedback brief and exact: state changes show up as a square light, a chip or a one-line mono status, not a dialog."
+    ],
+    "donts": [
+      "**Don't** use shadows, glows, gradients, blur or glass anywhere.",
+      "**Don't** round past 2px or use pills, circles or capsules. Lights, knobs and swatches are squares.",
+      "**Don't** use Focus Ice for anything except focus rings.",
+      "**Don't** use mint, amber or coral decoratively, or show one of their meanings in another color.",
+      "**Don't** add a second light slab, banner or card. The light surface belongs to the answer.",
+      "**Don't** use Big Shoulders for labels or body text, or Segoe for numbers.",
+      "**Don't** use bounce above 0.35, start a spring from zero velocity when it's interrupted mid-flight, or make motion that can't be turned off.",
+      "**Don't** add a logo or icon set. The title is text, and its letter M is the icon."
+    ]
+  }
+}

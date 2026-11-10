@@ -7,39 +7,52 @@ bottom and drop off the top, so a code arrives one word at a time:
     "code is..." -> "KEYBOARD" -> "ESCAPE" -> "IS" -> "BORING"
 
 Usage:
-    python codereader.py                      # watch the primary monitor live
-    python codereader.py --region 0,120,1280,720   # only a windowed video player
-    python codereader.py --video clip.mp4     # test on a recording
+    python codereader.py                      # watch the top half of the primary monitor
+    python codereader.py --region 0,120,1280,360   # only the top half of a windowed video player
+    python codereader.py --video clip.mp4     # test on a recording (its top half)
 
-Codes are printed, copied to the clipboard, and pasted into the game if its
-window is active. Click the Codes box first so the paste lands there.
+Codes and riddles are both watched for. Riddles are solved by the local AI, if
+setup_ai.py has installed it. Answers are printed, copied to the clipboard, and
+pasted into the game if its window is active. Click the Codes box first so the
+paste lands there.
 """
-import argparse
 import ctypes
 import itertools
 import re
-import sys
 import time
 
 import cv2
 import numpy as np
 from rapidfuzz import fuzz
-from rapidocr_onnxruntime import RapidOCR
 
-# Everything is measured on frames scaled to this height.
-WORK_H = 720
-# Where the overlay lives, as fractions of the frame (x0, y0, x1, y1). Lines
-# are centered, so a long one ("this code has NO NUMBERS") starts far left.
-ROI = (0.02, 0.04, 0.98, 0.45)
-# The icon's yellow face is ~25x22px at WORK_H; videos zoom in on it up to ~1.7x.
+# Everything is measured on frames scaled to this width, which is a 16:9
+# picture 720 high. Width rather than height, so the strip cut off the top of
+# the picture that is read by default keeps its text the same size.
+WORK_W = 1280
+# The icon's yellow face is ~25x22px at work scale; videos zoom in on it up to ~1.7x.
 FACE_MIN_H, FACE_MAX_H = 12, 48
 
 
+def top_half(x, y, w, h):
+    """The default area to read: the whole width of a screen and the top half
+    of it, where the overlay is. Code lines and riddle rows are both looked for
+    in all of it."""
+    return x, y, w, h // 2
+
+
 def to_work_scale(frame):
-    h = frame.shape[0]
-    if h == WORK_H:
+    w = frame.shape[1]
+    if w == WORK_W:
         return frame
-    return cv2.resize(frame, None, fx=WORK_H / h, fy=WORK_H / h, interpolation=cv2.INTER_AREA)
+    return cv2.resize(frame, None, fx=WORK_W / w, fy=WORK_W / w, interpolation=cv2.INTER_AREA)
+
+
+def dim_gain(hsv):
+    """Purchase prompts dim the whole screen, overlay included. The overlay's
+    white text is normally the brightest thing here, so this is the brightness
+    gain that undoes the dimming (1.0 if the screen isn't dimmed)."""
+    brightest = np.percentile(hsv[..., 2], 99.5)
+    return min(4.0, 250 / max(brightest, 1)) if brightest < 200 else 1.0
 
 
 def find_lines(frame):
@@ -50,14 +63,11 @@ def find_lines(frame):
     separate even when stacked icons touch or the background is red.
     """
     fh, fw = frame.shape[:2]
-    rx0, ry0, rx1, ry1 = int(ROI[0] * fw), int(ROI[1] * fh), int(ROI[2] * fw), int(ROI[3] * fh)
-    hsv = cv2.cvtColor(frame[ry0:ry1, rx0:rx1], cv2.COLOR_BGR2HSV)
-    # Purchase prompts dim the whole screen, overlay included. The overlay's
-    # white text is normally the brightest thing here, so undo the dimming.
-    brightest = np.percentile(hsv[..., 2], 99.5)
-    if brightest < 200:
-        frame = cv2.convertScaleAbs(frame, alpha=min(4.0, 250 / max(brightest, 1)))
-        hsv = cv2.cvtColor(frame[ry0:ry1, rx0:rx1], cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    gain = dim_gain(hsv)
+    if gain != 1.0:
+        frame = cv2.convertScaleAbs(frame, alpha=gain)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
     red = ((h <= 10) | (h >= 170)) & (s > 110) & (v > 90)
     yellow = ((h >= 15) & (h <= 38) & (s > 110) & (v > 140)).astype(np.uint8)
@@ -75,7 +85,7 @@ def find_lines(frame):
         # Back to frame coordinates. The line (icon + text) is centered on the
         # screen, so the text ends about as far right of center as the icon
         # starts left of it.
-        fx, fy = rx0 + x, ry0 + y
+        fx, fy = x, y
         icon_left = fx - 0.54 * w
         text_left = int(fx + 1.5 * w)
         text_right = int(min(fw, fw - icon_left + 0.5 * w))
@@ -204,7 +214,7 @@ class Read:
     """One OCR read of one line, and what it says about the line's role."""
 
     def __init__(self, raw, score, n_words=None, y=None):
-        """n_words and y (line center, in WORK_H pixels) come from the image;
+        """n_words and y (line center, in work-scale pixels) come from the image;
         without n_words, OCR's spaces stand in."""
         raw = raw.strip()
         self.text = normalize(raw)
@@ -218,6 +228,9 @@ class Read:
             self.intro = "CODE" in self.text
         else:
             self.intro = bool(CODE_WORD.search(raw.upper()) or re.fullmatch(r"[A-Z]*CODE(S|IS)?", self.text))
+        # "the code was FISHINOCLOWNINO15" gives away one that's over.
+        if "CODEWAS" in self.text:
+            self.intro = False
         # The code can sit on the intro line itself: "code: SPOOKY", "CODE IS SPOOKY".
         self.head = ""
         m = AFTER_CODE.match(raw) if self.intro else None
@@ -345,7 +358,9 @@ def agree(a, b):
 # NEW_UNREAD if OCR couldn't read it: that's almost always a known line.
 WEAK_MATCH, MOVED_DOWN, VANISHED, MISSED_LINE, SAME_PLACE = 60, 45, 30, 30, 15
 NEW_LINE, NEW_ABOVE, NEW_UNREAD = 10, 25, 40
-MOVE_SLACK = 20  # pixels at WORK_H; lines are ~52px apart
+MOVE_SLACK = 20  # pixels at work scale; lines are ~52px apart
+# Seconds an intro waits for its first word ("the code is..." then a pause).
+INTRO_WAIT = 20.0
 
 
 class CodeReader:
@@ -529,10 +544,13 @@ class CodeReader:
             # The line that ended this code may start the next one.
             self._close(code, max(s.order for s in self.slots if s.order < end.order))
 
-        quiet = t - max(s.first_seen for s in self.slots) >= self.end_gap
+        # Before the first word the streamer is often building suspense: the
+        # intro can scroll away and the overlay sit empty for several seconds.
+        gap = self.end_gap if words else max(self.end_gap, INTRO_WAIT)
+        quiet = t - max(s.first_seen for s in self.slots) >= gap
         # An empty overlay ends the code, unless it's still short: then the
         # streamer may just be typing slowly.
-        gone = (empty and self.last_lines_t is not None and t - self.last_lines_t >= self.empty_gap
+        gone = (empty and words and self.last_lines_t is not None and t - self.last_lines_t >= self.empty_gap
                 and len(words) >= self.expect_words)
         if quiet or gone:
             self.finish()
@@ -550,7 +568,19 @@ class CodeReader:
         self._close(code, max((s.order for s in self.slots), default=-1.0))
 
 
-def frames_from_video(path, fps):
+def crop(frame, area):
+    x, y, w, h = area
+    return frame[y:y + h, x:x + w]
+
+
+def frames_from_video(path, fps, region=None):
+    """Yield (seconds, frame) from a recording, cut to region (x, y, w, h in the
+    video's pixels), or to its top half like the screen is by default."""
+    for t, frame in _video_frames(path, fps):
+        yield t, crop(frame, region or top_half(0, 0, frame.shape[1], frame.shape[0]))
+
+
+def _video_frames(path, fps):
     cap = cv2.VideoCapture(path)
     step = max(1, round(cap.get(cv2.CAP_PROP_FPS) / fps))
     i = 0
@@ -563,20 +593,43 @@ def frames_from_video(path, fps):
         i += step
 
 
-def frames_from_screen(fps, monitor=1, region=None):
+BLOCKED_RETRY = 0.25    # seconds between tries while the screen can't be captured
+
+
+def frames_from_screen(fps, monitor=1, region=None, on_blocked=None):
+    """Yield (seconds, frame) for as long as the caller wants them. Frames are
+    region (x, y, w, h in physical pixels), or the monitor's top half without it.
+
+    Windows refuses captures during a lock screen or an admin prompt. That
+    shouldn't end the watch, so this starts over with a fresh capture until the
+    screen is back. Frames are None meanwhile, so the caller can still stop, and
+    on_blocked is called once each time it happens.
+    """
     import mss
-    with mss.mss() as sct:
-        if region:
-            x, y, w, h = region
-            box = {"left": x, "top": y, "width": w, "height": h}
-        else:
-            box = sct.monitors[monitor]
-        start = time.monotonic()
-        while True:
-            t0 = time.monotonic()
-            frame = np.ascontiguousarray(np.asarray(sct.grab(box))[..., :3])
-            yield t0 - start, frame
-            time.sleep(max(0.0, 1 / fps - (time.monotonic() - t0)))
+    from mss.exception import ScreenShotError
+    start = time.monotonic()
+    blocked = False
+    while True:
+        try:
+            with mss.MSS() as sct:
+                if region:
+                    x, y, w, h = region
+                else:
+                    m = sct.monitors[monitor]
+                    x, y, w, h = top_half(m["left"], m["top"], m["width"], m["height"])
+                box = {"left": x, "top": y, "width": w, "height": h}
+                while True:
+                    t0 = time.monotonic()
+                    frame = np.ascontiguousarray(np.asarray(sct.grab(box))[..., :3])
+                    blocked = False
+                    yield t0 - start, frame
+                    time.sleep(max(0.0, 1 / fps - (time.monotonic() - t0)))
+        except ScreenShotError:
+            if on_blocked and not blocked:
+                on_blocked()
+            blocked = True
+            yield time.monotonic() - start, None
+            time.sleep(BLOCKED_RETRY)
 
 
 def active_window():
@@ -589,16 +642,21 @@ def active_window():
     return title.value
 
 
-def press_paste():
+# Long enough for a game to see each key at about 100 fps, for when 240 dips. A
+# game reads keys once a frame and can miss a press shorter than that.
+KEY_DELAY = 0.015
+
+
+def press_paste(key_delay=KEY_DELAY):
     """Ctrl+A then Ctrl+V in the active window, so a longer code replaces a
-    shorter one. Keys carry scan codes and stay down briefly: games read scan
-    codes and can miss a press shorter than a frame."""
+    shorter one. Keys carry scan codes and stay down briefly, because games read
+    scan codes."""
     user32 = ctypes.windll.user32
     ctrl, a, v, key_up = 0x11, 0x41, 0x56, 0x0002
 
     def key(vk, flags=0):
         user32.keybd_event(vk, user32.MapVirtualKeyW(vk, 0), flags, 0)
-        time.sleep(0.03)
+        time.sleep(key_delay)
 
     key(ctrl)
     try:
@@ -609,92 +667,15 @@ def press_paste():
         key(ctrl, key_up)
 
 
-def paste_into(title):
+def paste_into(title, key_delay=KEY_DELAY):
     """Paste the clipboard if the active window is titled exactly this (so a
     browser tab called "Roblox codes" doesn't count). Returns whether it did."""
     if active_window().casefold() != title.casefold():
         return False
-    press_paste()
+    press_paste(key_delay)
     return True
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--video", help="read from a video file instead of the screen")
-    ap.add_argument("--fps", type=float, default=4, help="frames to check per second (default 4)")
-    ap.add_argument("--monitor", type=int, default=1, help="monitor to capture, 1 = primary")
-    ap.add_argument("--region", help="capture only x,y,w,h (e.g. a windowed video player)")
-    ap.add_argument("--words", type=int, default=3,
-                    help="copy as soon as this many words are in, and again for each extra word "
-                         "(default 3, 0 = wait for the code to finish)")
-    ap.add_argument("--end-gap", type=float, default=6.0,
-                    help="seconds with no new word before a code counts as finished (default 6)")
-    ap.add_argument("--copy-partial", action="store_true",
-                    help="update the clipboard with every new word, not just the finished code")
-    ap.add_argument("--no-copy", action="store_true", help="never touch the clipboard (also stops pasting)")
-    ap.add_argument("--no-paste", action="store_true", help="copy codes but don't paste them")
-    ap.add_argument("--paste-window", default="Roblox",
-                    help='only paste when the active window has exactly this title (default "Roblox")')
-    ap.add_argument("--verbose", action="store_true", help="print every frame's OCR reads")
-    args = ap.parse_args()
-    # Raw OCR reads can contain characters the Windows console can't print.
-    sys.stdout.reconfigure(errors="replace")
-
-    import pyperclip
-
-    state = {"copied": "", "early": False}
-
-    def copy(code):
-        """Copy and paste the code. Returns a note on what happened."""
-        state["copied"] = code
-        if args.no_copy:
-            return ""
-        pyperclip.copy(code)
-        if args.no_paste:
-            return "  (copied)"
-        if paste_into(args.paste_window):
-            return "  (copied and pasted)"
-        return f"  (copied, not pasted: {args.paste_window} isn't the active window)"
-
-    def on_partial(code):
-        print(f"[{now:6.1f}s] building: {code}")
-        if args.copy_partial:
-            copy(code)
-
-    def on_ready(code):
-        note = "updated: another word came in" if state["early"] else \
-            f"{args.words} words in, will update if more come"
-        state["early"] = True
-        print(f"[{now:6.1f}s] CODE: {code}{copy(code)}  [{note}]")
-
-    def on_code(code):
-        if state["early"] and code == state["copied"]:
-            print(f"[{now:6.1f}s] done: {code}")
-        else:
-            print(f"[{now:6.1f}s] CODE: {code}{copy(code)}")
-        state["early"] = False
-
-    ocr = RapidOCR()
-    reader = CodeReader(end_gap=args.end_gap, expect_words=args.words,
-                        on_partial=on_partial, on_ready=on_ready, on_code=on_code)
-    if args.video:
-        frames = frames_from_video(args.video, args.fps)
-    else:
-        region = tuple(int(v) for v in args.region.split(",")) if args.region else None
-        frames = frames_from_screen(args.fps, args.monitor, region)
-        print("Watching the screen. Ctrl+C to stop.")
-
-    now = 0.0
-    try:
-        for now, frame in frames:
-            reads = read_frame(ocr, frame)
-            if args.verbose:
-                print(f"  {now:6.1f}s  {reads}")
-            reader.feed(now, reads)
-    except KeyboardInterrupt:
-        pass
-    reader.finish()
-
-
 if __name__ == "__main__":
-    main()
+    import engine
+    engine.main()

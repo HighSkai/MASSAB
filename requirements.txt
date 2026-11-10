@@ -2,6 +2,7 @@ mss==10.2.0
 numpy==2.5.4
 opencv-python==5.0.0.93
 pyperclip==1.11.0
+PySide6-Essentials==6.12.0
 rapidfuzz==3.14.6
 # Pinned exactly: codereader calls this version's recognizer directly.
 rapidocr_onnxruntime==1.2.3
