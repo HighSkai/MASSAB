@@ -1,6 +1,6 @@
 # MASSAB
 
-**Reads promo codes and solves riddles off a Roblox stream overlay in real time, then pastes the answer into the game for you.**
+**A lightweight, locally hosted AI assistant that detects Roblox stream promo codes and solves game trivia in real time using OCR and GPU-accelerated language models. Features automated code assembly, intelligent riddle solving, and clipboard integration.**
 
 ![MASSAB solving a riddle: AUGUST2025, pasted in 0.93 seconds](docs/home-riddle.png)
 
