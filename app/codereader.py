@@ -51,8 +51,17 @@ def dim_gain(hsv):
     """Purchase prompts dim the whole screen, overlay included. The overlay's
     white text is normally the brightest thing here, so this is the brightness
     gain that undoes the dimming (1.0 if the screen isn't dimmed)."""
-    brightest = np.percentile(hsv[..., 2], 99.5)
+    brightest = percentile_u8(hsv, 2, 99.5)
     return min(4.0, 250 / max(brightest, 1)) if brightest < 200 else 1.0
+
+
+def percentile_u8(image, channel, q):
+    """np.percentile of one uint8 channel, from a histogram instead of a sort."""
+    counts = np.cumsum(cv2.calcHist([image], [channel], None, [256], [0, 256]).ravel().astype(np.int64))
+    rank = q / 100 * (counts[-1] - 1)
+    low = int(np.searchsorted(counts, int(rank) + 1))
+    high = int(np.searchsorted(counts, int(rank) + 2)) if rank % 1 else low
+    return low + (rank % 1) * (high - low)
 
 
 def find_lines(frame):
@@ -108,9 +117,10 @@ def find_lines(frame):
     return [(cy, *line) for cy, _, _, line in kept]
 
 
-def white_mask(crop):
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-    return ((hsv[..., 2] > 190) & (hsv[..., 1] < 60)).astype(np.uint8)
+def white_mask(crop, hsv=None):
+    """1 where the overlay's white letters could be. hsv saves converting crop again."""
+    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV) if hsv is None else hsv
+    return cv2.inRange(hsv, (0, 0, 191), (180, 59, 255)) // 255
 
 
 def trim_to_glyphs(crop, face_h):
@@ -361,6 +371,10 @@ NEW_LINE, NEW_ABOVE, NEW_UNREAD = 10, 25, 40
 MOVE_SLACK = 20  # pixels at work scale; lines are ~52px apart
 # Seconds an intro waits for its first word ("the code is..." then a pause).
 INTRO_WAIT = 20.0
+# A line gone this long, and not part of a code being read, is forgotten, so a
+# long watch doesn't slowly use more memory and time.
+FORGET_AFTER = 60.0
+FORGET_AT = 64      # lines kept before looking for ones to forget
 
 
 class CodeReader:
@@ -409,6 +423,19 @@ class CodeReader:
             self.last_lines_t = t
             self._match(t, reads)
         self._update(t, empty=not reads)
+        if len(self.slots) > FORGET_AT:
+            self._forget(t)
+
+    def _forget(self, t):
+        """Drop lines gone FORGET_AFTER seconds that come before the code being read.
+        They get no more reads, and an intro among them would be the trigger already."""
+        floor = self.trigger.order if self.trigger is not None else float("inf")
+        keep = [i for i, s in enumerate(self.slots) if s.order >= floor or t - s.last_seen <= FORGET_AFTER]
+        if len(keep) == len(self.slots):
+            return
+        index = {old: new for new, old in enumerate(keep)}
+        self.slots = [self.slots[i] for i in keep]
+        self.recent = [[index[i] for i in frame if i in index] for frame in self.recent]
 
     def _match(self, t, reads):
         recent = set().union(*self.recent)

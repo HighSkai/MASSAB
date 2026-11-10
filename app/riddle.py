@@ -70,12 +70,15 @@ def chain_letters(letters):
     return lines
 
 
-def find_rows(frame):
-    """Find centered white text rows in a work-scale frame: [(x0, y0, x1, y1, n_words)] top to bottom."""
+def find_rows(frame, hsv=None):
+    """Find centered white text rows in a work-scale frame: [(x0, y0, x1, y1, n_words)] top to bottom.
+    hsv is the frame in HSV, if that's at hand already."""
     fw = frame.shape[1]
-    _, _, stats, _ = cv2.connectedComponentsWithStats(white_mask(frame))
-    letters = [(int(x), int(y), int(w), int(h)) for x, y, w, h, area in stats[1:]
-               if GLYPH_MIN_H <= h <= GLYPH_MAX_H and w <= 2 * GLYPH_MAX_H and area >= 6]
+    _, _, stats, _ = cv2.connectedComponentsWithStats(white_mask(frame, hsv))
+    stats = stats[1:]
+    w, h, area = stats[:, cv2.CC_STAT_WIDTH], stats[:, cv2.CC_STAT_HEIGHT], stats[:, cv2.CC_STAT_AREA]
+    stats = stats[(h >= GLYPH_MIN_H) & (h <= GLYPH_MAX_H) & (w <= 2 * GLYPH_MAX_H) & (area >= 6)]
+    letters = [tuple(box) for box in stats[:, :4].tolist()]
 
     rows = []
     for line in chain_letters(letters):
@@ -111,14 +114,16 @@ def read_rows(ocr, frame, boxes=None):
     gets each row's (x0, y0, x1, y1, text) in frame pixels, for drawing.
     """
     work = to_work_scale(frame)
-    gain = dim_gain(cv2.cvtColor(work, cv2.COLOR_BGR2HSV))
+    hsv = cv2.cvtColor(work, cv2.COLOR_BGR2HSV)
+    gain = dim_gain(hsv)
     if gain != 1.0:
         work = cv2.convertScaleAbs(work, alpha=gain)
+        hsv = None
     scale = frame.shape[1] / work.shape[1]
 
     messages = []
     last_middle = None
-    for x0, y0, x1, y1, words in find_rows(work):
+    for x0, y0, x1, y1, words in find_rows(work, hsv):
         pad = max(3, (y1 - y0) // 5)
         crop = frame[int(max(0, y0 - pad) * scale):int((y1 + pad) * scale),
                      int(max(0, x0 - pad) * scale):int((x1 + pad) * scale)]

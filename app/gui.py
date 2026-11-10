@@ -32,6 +32,7 @@ from overlay import (PASSIVE_FLAGS, AreaOverlay, AreaPicker, AreaPreview, captur
                      monitor_rects, screen_for)
 from riddle import FACTS_PATH, gpu_memory
 from setup_ai import APP_DIR, DEFAULT_MODEL, MODELS, ai_installed
+from shortcut import ensure_shortcut
 from theme import (TEXT3, Backdrop, Columns, Light, NavRail, PipelineBar, Rail, Segmented, Swatches, Toggle,
                    Sheet, apply, caps, dark_title_bar, hop, label, separator, set_motion, use_own_taskbar_icon,
                    window_icon)
@@ -55,6 +56,7 @@ DEFAULTS = {
     "overlay": "never", "overlay_reads": True, "overlay_labels": True,
     "overlay_color": "#3cc8ff", "overlay_width": 2, "overlay_opacity": 90,
     "chat_facts": True, "motion": "on",
+    "sound": False, "on_top": False, "auto_start": False,
 }
 CHOICES = {"model": tuple(MODELS), "overlay": tuple(OVERLAY_WHEN), "hud_corner": HUD_CORNERS,
            "hud_size": tuple(HUD_SIZES), "motion": tuple(MOTION_MODES)}
@@ -694,7 +696,9 @@ class Panel(QMainWindow):
         self.add_rows(c, [self.setting_row("Copy after", self.words_edit,
                                            tip="Copied once this many words are in, and updated if more come. "
                                                "Whole code waits for the end."),
-                          self.setting_row("Code ends after", self.gap_edit, tip="With no new word in that time")])
+                          self.setting_row("Code ends after", self.gap_edit, tip="With no new word in that time"),
+                          self.setting_row("Sound on copy", self.bind("sound", Toggle()),
+                                           tip="A short Windows sound each time a code or answer is copied")])
         self.codes_card = card
         columns.add(card)
 
@@ -727,7 +731,11 @@ class Panel(QMainWindow):
 
         card, c = self.card("Window")
         self.motion_edit = self.bind("motion", self.segmented(MOTION_MODES.items()))
-        self.add_rows(c, [self.setting_row("Animations", self.motion_edit,
+        self.add_rows(c, [self.setting_row("Start watching on open", self.bind("auto_start", Toggle()),
+                                           tip="Press nothing: MASSAB starts reading as soon as it opens"),
+                          self.setting_row("Keep on top", self.bind("on_top", Toggle()),
+                                           tip="Stay above the game window"),
+                          self.setting_row("Animations", self.motion_edit,
                                            tip="Windows follows the Animation effects setting in Windows. "
                                                "Off makes every change instant.")])
         box.addWidget(card)
@@ -789,6 +797,8 @@ class Panel(QMainWindow):
         old, self.settings[key] = self.settings[key], value
         if key == "motion":
             set_motion(value)
+        elif key == "on_top":
+            self.apply_on_top()
         if key == "model" and value != old:
             self.engine.options.model = value
             self.engine.stop_ai()
@@ -800,6 +810,19 @@ class Panel(QMainWindow):
         if key.startswith("overlay") or key in ("monitor", "region"):
             self.update_overlay()
         self.save()
+
+    def apply_on_top(self):
+        on = self.settings["on_top"]
+        if bool(self.windowFlags() & Qt.WindowType.WindowStaysOnTopHint) != on:
+            shown = self.isVisible()
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, on)
+            if shown:
+                self.show()     # changing a window's flags hides it
+
+    def chime(self):
+        if self.settings["sound"] and sys.platform == "win32":
+            import winsound
+            winsound.MessageBeep(winsound.MB_OK)    # returns at once; Windows plays it
 
     def save(self):
         try:
@@ -964,9 +987,11 @@ class Panel(QMainWindow):
         threading.Thread(target=self.engine.start_ai, daemon=True).start()
 
     def install_ai(self, model):
+        def progress(name, done, total):
+            self.relay.emit("download", {"name": name, "done": done, "total": total})
         try:
-            setup_ai.install_runtime()
-            setup_ai.install_model(model)
+            setup_ai.install_runtime(progress)
+            setup_ai.install_model(model, progress)
         except (OSError, SystemExit) as e:
             self.relay.emit("error", {"message": f"Couldn't install the AI: {e}"})
             self.relay.emit("ai", {"state": "off"})
@@ -990,7 +1015,31 @@ class Panel(QMainWindow):
             self.stop_chat("the AI was unloaded")
         self.show_chat_state()
 
+    def show_download(self, e):
+        """The download's progress, in the VRAM meter's place: there's no AI using VRAM yet."""
+        if self.ai_state != "installing" or not e["total"]:
+            return
+        what = "Model" if e["name"].endswith(".gguf") else "AI runtime"
+        percent = e["done"] * 100 // e["total"]
+        self.vram_label.setText(f"{what} {percent}% of {e['total'] / 1e9:.1f} GB")
+        self.vram_label.setToolTip("Stopping MASSAB is fine: the download picks up where it left off")
+        self.vram_bar.setMaximum(1000)
+        self.vram_bar.setValue(e["done"] * 1000 // e["total"])
+        self.vram_bar.setProperty("low", False)
+        self.vram_bar.style().polish(self.vram_bar)
+        self.vram_label.show()
+        self.vram_bar.show()
+        self.chat_banner_text.setText(f"Downloading the AI: {what.lower()} {percent}%. You can chat once it's loaded.")
+
     def check_vram(self):
+        if self.ai_state == "installing":
+            return      # the meter is showing the download
+        # Only the AI needs the VRAM; without it there's no reason to run nvidia-smi every few seconds.
+        if not ai_installed(self.settings["model"]):
+            self.vram_label.hide()
+            self.vram_bar.hide()
+            return
+        self.vram_label.show()
         threading.Thread(target=lambda: self.relay.emit("vram", {"memory": gpu_memory()}), daemon=True).start()
 
     def show_vram(self, memory):
@@ -1205,6 +1254,8 @@ class Panel(QMainWindow):
             self.show_answer(e["code"], "CODE", note if ":" in note else "", pasted=was_pasted(e["note"]))
             self.log(f"Code: {e['code']}{e['note']}")
             self.hud.show_result(e["code"], "CODE", state="pasted" if was_pasted(e["note"]) else "copied")
+            if e["note"]:
+                self.chime()
         elif kind == "done":
             self.log(f"Done: {e['code']}")
         elif kind == "riddle":
@@ -1214,6 +1265,8 @@ class Panel(QMainWindow):
             self.hud.show_result("Solving", "RIDDLE")
         elif kind == "answer":
             self.on_answer(e)
+            if e["note"]:
+                self.chime()
         elif kind == "no_answer":
             self.log(f"No answer from the model: {e['solved'].reply!r}")
             self.hud.show_result("No answer", "RIDDLE")
@@ -1226,6 +1279,8 @@ class Panel(QMainWindow):
         elif kind == "installed":
             self.log("AI installed.")
             self.load_ai()
+        elif kind == "download":
+            self.show_download(e)
         elif kind == "vram":
             self.show_vram(e["memory"])
         elif kind == "chat_text":
@@ -1273,7 +1328,11 @@ def main():
     apply(app)
     app.setWindowIcon(window_icon())
     panel = Panel(load_settings())
+    panel.apply_on_top()
     panel.show()
+    if panel.settings["auto_start"]:
+        QTimer.singleShot(0, panel.toggle_watching)
+    threading.Thread(target=ensure_shortcut, daemon=True).start()
     # A riddle can't wait for the model to load, so start on that right away.
     if panel.settings["ai_autoload"] and ai_installed(panel.settings["model"]):
         panel.load_ai()

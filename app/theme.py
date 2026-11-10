@@ -821,7 +821,7 @@ class Light(QWidget):
 
 
 class NavButton(QPushButton):
-    """A tab in the rail: its name, and the number of its Ctrl shortcut."""
+    """A tab in the rail: its name. Its Ctrl shortcut is in the tooltip."""
 
     def __init__(self, name, number, parent=None):
         super().__init__(name, parent)
@@ -840,9 +840,6 @@ class NavButton(QPushButton):
         p.setPen(QColor(INK if lit else TEXT2))
         box = QRectF(self.rect()).adjusted(14, 0, -14, 0)
         p.drawText(box, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, self.text())
-        p.setFont(font("mono", 8))
-        p.setPen(QColor(TEXT2 if self.isChecked() else TEXT3))
-        p.drawText(box, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, self.number)
         if self.hasFocus():
             focus_ring(p, QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5))
 
