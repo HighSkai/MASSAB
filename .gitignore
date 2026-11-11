@@ -1,17 +1,39 @@
+# --- Python ---------------------------------------------------------------
 .venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Tests stay local. testdata is cut from other people's videos.
-tests/sim.py
-tests/test_*.py
-tests/testdata/
-*.mp4
-
-# Downloaded by setup_ai.py, too big for git.
+# --- Downloaded by app/setup_ai.py, too big for git -------------------------
 app/bin/
 app/models/
 
-# Per-user settings, and the shortcut app/shortcut.py makes for this PC.
+# --- Per-user files ----------------------------------------------------------
+# Settings, and the shortcut app/shortcut.py makes for this PC.
 app/settings.json
 MASSAB.lnk
+*.log
+
+# --- Development only: not needed to run MASSAB -----------------------------
+# Tests and benchmarks. testdata is cut from other people's videos.
+tests/
+*.mp4
+
+# Design and product notes, and the design tool's working files.
+.impeccable/
+DESIGN.md
+PRODUCT.md
+
+# Editor and assistant settings.
+.claude/
+.vscode/
+.idea/
+
+# --- OS clutter --------------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
