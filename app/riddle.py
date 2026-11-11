@@ -24,9 +24,11 @@ from datetime import date
 
 import cv2
 import numpy as np
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 
+import today
 from codereader import Read, dim_gain, has_lower, is_hint, normalize, similarity, to_work_scale, white_mask
+from lookup import classify, live_section
 from setup_ai import APP_DIR, DEFAULT_MODEL, LLAMA_SERVER, model_path
 
 # A row's middle is this close to the screen's (fraction of width). The text is
@@ -44,6 +46,10 @@ LOOK_BACK = 3  # letters at the end of a chain to try, in case the last is a spe
 # Pixels at work scale between the middles of two rows of one wrapped message. They
 # measure ~24 apart, while separate overlay lines are ~52 apart.
 WRAP_PITCH = 36
+# The dots of "the riddle is...what" are too small to count as letters, and the
+# gap they leave is wider than a letter is tall. Pieces of a row this many
+# letter heights apart can still be one row.
+BRIDGE_GAP = 2.0
 
 
 def neighbors(a, b):
@@ -81,7 +87,7 @@ def find_rows(frame, hsv=None):
     letters = [tuple(box) for box in stats[:, :4].tolist()]
 
     rows = []
-    for line in chain_letters(letters):
+    for line in bridge(chain_letters(letters), fw):
         run = centered(line, fw / 2, fw)
         if len(run) < ROW_MIN_LETTERS:
             continue
@@ -92,6 +98,36 @@ def find_rows(frame, hsv=None):
             edge = max(edge, x + w)
         rows.append((run[0][0], min(b[1] for b in run), edge, max(b[1] + b[3] for b in run), words))
     return sorted(rows, key=lambda row: row[1])
+
+
+def bridge(lines, fw):
+    """Join two pieces of one row split by a gap a little wider than a letter,
+    like an ellipsis. Only pieces that aren't centered on their own are
+    joined, and only if together they are, so the overlay's text never takes
+    in something beside it."""
+    lines = [line for line in lines if line]
+    joined = True
+    while joined:
+        joined = False
+        loose = sorted((line for line in lines if not centered(line, fw / 2, fw)), key=lambda line: line[0][0])
+        for a in loose:
+            end = max(a[-LOOK_BACK:], key=lambda b: b[0] + b[2])
+            for b in loose:
+                first = b[0]
+                gap = first[0] - (end[0] + end[2])
+                # The letters on either side of the gap can be short ones ("s... w").
+                height = max(box[3] for box in a + b)
+                shared = min(end[1] + end[3], first[1] + first[3]) - max(end[1], first[1])
+                if (b is a or not 0 <= gap <= BRIDGE_GAP * height or shared < SHARED_HEIGHT * min(end[3], first[3])
+                        or max(end[3], first[3]) > LETTER_HEIGHTS * min(end[3], first[3])):
+                    continue
+                if centered(a + b, fw / 2, fw):
+                    lines = [line for line in lines if line is not a and line is not b] + [a + b]
+                    joined = True
+                    break
+            if joined:
+                break
+    return lines
 
 
 def centered(line, center, fw):
@@ -422,6 +458,16 @@ NAME_MIN_LINES = 3      # a capitalized word in fewer lines is likely just a wor
 NAME_MAX_LOWER = 0.03   # a name is lowercase in at most this share of its uses
 FUZZY_NAME_MIN = 6      # shorter words look like too many names ("room" and "Broom", "more" and "Morte")
 NAME_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9']*")
+# Words unglue must leave whole even though the fact sheet never uses them:
+# "todays" split into "to days" turns "what is todays date" into arithmetic.
+WHOLE_WORDS = set("""today todays tonight tonights yesterday yesterdays tomorrow tomorrows weekday weekdays weekend
+weekends latest newest recently currently upcoming christmas halloween""".split())
+# A riddle asking one of these about a name the facts have never seen is
+# about a Brainrot newer than them: "how much does bling luming cost".
+GAME_HINT = re.compile(r"\b(?:rarity|rarest|cost|costs|price|income|earns?|makes?|money|generates?|worth|mutations?"
+                       r"|traits?|brainrots?|spawns?|obtain(?:ed)?|fuse|rebirths?|secret|mythic|legendary|og|sab"
+                       r"|steal a brainrot)\b", re.I)
+UNKNOWN_MIN = 4         # shorter words are too often just words
 SOURCE_NOTE = re.compile(r"\s*\[source:[^\]]*\]", re.I)
 # Everything from this heading on is a conflict between sources, not a fact.
 UNREVIEWED = "## needs review"
@@ -456,6 +502,7 @@ class Facts:
         self.weight = {w: 1 + math.log(max(1, len(self.lines)) / n) for w, n in counts.items()}
         self.vocabulary = {w for line in self.lines for w in re.findall(r"[a-z]+", line.lower()) if len(w) > 1 or w == "a"}
         self.names, self.name_pairs = self._names()
+        self._sorted_vocabulary = None
 
     def _names(self):
         """What the facts treat as names: words they always capitalize (Meowl,
@@ -503,6 +550,18 @@ class Facts:
                 return True
         return False
 
+    def unknown(self, words):
+        """The words the facts never use, even misspelled: likely the name of
+        something newer than them."""
+        missing = [w for w in words if len(w) >= UNKNOWN_MIN and not w.isdigit() and w not in self.vocabulary
+                   and w.rstrip("s") not in self.vocabulary]
+        if not missing:
+            return []
+        if self._sorted_vocabulary is None:
+            self._sorted_vocabulary = sorted(self.vocabulary)
+        return [w for w in missing
+                if process.extractOne(w, self._sorted_vocabulary, scorer=fuzz.ratio, score_cutoff=FUZZY_WORD) is None]
+
     def unglue(self, text):
         """Put back spaces OCR lost, wherever a word splits cleanly into ones
         the facts use. "dragoncannelloni" stops the model cold, even with the
@@ -512,7 +571,7 @@ class Facts:
 
     def _split(self, word):
         low = word.lower()
-        if low in self.vocabulary:
+        if low in self.vocabulary or low.replace("'", "") in WHOLE_WORDS:
             return word
         fewest = {0: []}    # end of a stretch that splits into words -> those words
         for end in range(1, len(low) + 1):
@@ -581,12 +640,12 @@ def gpu_memory():
         return None
 
 
-def parse_answer(reply, riddle=""):
+def parse_answer(reply, riddle="", day=None):
     """The code in a model reply ("ANSWER: August 2025" -> "AUGUST2025"), or "".
 
     The model copies a whole date out of a fact even when the riddle only wants
     the month and year, and no prompt wording fixed that without breaking
-    riddles that do want the day.
+    riddles that do want the day. day is today's, for "and the day today".
     """
     match = ANSWER.search(reply)
     if not match:
@@ -597,7 +656,7 @@ def parse_answer(reply, riddle=""):
     code = normalize(answer)
     if not code or code in NOT_ANSWERS:
         return ""
-    return follow_instructions(code, riddle)
+    return follow_instructions(code, riddle, day)
 
 
 def split_add_ons(riddle, day=None):
@@ -683,13 +742,18 @@ class LlamaServer:
 class Solved:
     """What came back for one riddle."""
 
-    def __init__(self, riddle, answer, reply, facts, guess, seconds):
+    def __init__(self, riddle, answer, reply, facts, guess, seconds, sources=(), flag="", basis=""):
         self.riddle = riddle
         self.answer = answer    # ready to paste, "" if the model gave none
         self.reply = reply      # the model's raw reply
         self.facts = facts      # fact lines sent with the riddle
-        self.guess = guess      # no fact covered the riddle, so don't trust this
+        self.guess = guess      # nothing covered the riddle, so don't trust this
         self.seconds = seconds
+        self.sources = list(sources)    # live Evidence sent with the riddle
+        self.flag = flag or ("no fact matched" if guess else "")    # why it's a guess
+        # Where the answer came from: "clock" (worked out from the date),
+        # "live", "facts", or "memory" (the model alone).
+        self.basis = basis
 
 
 class Solver:
@@ -697,15 +761,20 @@ class Solver:
     flight, so only the answer to the newest text is ever reported.
 
     on_answer gets (Solved, stamp) and on_error (message); both are called on
-    the solver's thread.
+    the solver's thread. live is a lookup.LiveInfo for riddles about now, and
+    on_lookup gets (state, note) as a lookup goes along.
     """
 
-    def __init__(self, on_answer, on_error=None, system_prompt=None, facts=None, port=PORT):
+    def __init__(self, on_answer, on_error=None, system_prompt=None, facts=None, port=PORT, live=None,
+                 on_lookup=None, clock=today.local_now):
         self.on_answer = on_answer
         self.on_error = on_error or (lambda message: None)
         self.system_prompt = load_system_prompt() if system_prompt is None else system_prompt
         self.facts = Facts() if facts is None else facts
         self.port = port
+        self.live = live
+        self.on_lookup = on_lookup or (lambda state, note: None)
+        self.clock = clock
         self.lock = threading.Lock()
         self.wake = threading.Event()
         self.job = 0
@@ -744,32 +813,81 @@ class Solver:
             if solved and job == self.job:
                 self.on_answer(solved, stamp)
 
-    def messages(self, riddle, facts):
-        notes = "Facts:\n" + "\n".join(f"- {fact}" for fact in facts) + "\n\n" if facts else ""
-        return [{"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": f"{notes}Riddle: {riddle}"}]
+    def messages(self, riddle, facts, date_line="", live=""):
+        """The prompt. The system prompt never changes, and a riddle that isn't
+        about now gets exactly what it always did: today's date in front of
+        "month and year the fuse machine released" would only invite the
+        model to answer with this month."""
+        parts = [date_line] if date_line else []
+        if facts:
+            parts.append("Facts:\n" + "\n".join(f"- {fact}" for fact in facts))
+        if live:
+            parts.append(live)
+        parts.append(f"Riddle: {riddle}")
+        return [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": "\n\n".join(parts)}]
 
     def solve(self, riddle, job=None):
         """Ask the model one riddle and wait for the reply. Returns None if job
         stops being the newest one."""
         start = time.perf_counter()
-        cleaned = self.facts.unglue(strip_add_ons(riddle))
+        now = self.clock()
+        question = strip_add_ons(riddle)
+        cleaned = self.facts.unglue(question)
+        needs = classify(question, cleaned)
+        # "what year is it" has one right answer, and it's on the clock.
+        if needs.date and not needs.live:
+            direct = today.answer(question, now)
+            if direct:
+                reply = f"ANSWER: {direct}"
+                return Solved(riddle, parse_answer(reply, riddle, now.day), reply, [], False,
+                              time.perf_counter() - start, basis="clock")
         facts, coverage = self.facts.top(cleaned)
+        game = self.facts.about_game(cleaned)
         # Facts that only share a word with the riddle pull the model toward
         # game terms ("first one wins" -> DUELSMACHINE), so send good ones or none,
         # and none to a riddle that names nothing from the game.
-        if coverage < FACT_MIN_COVERAGE or not self.facts.about_game(cleaned):
+        if coverage < FACT_MIN_COVERAGE or not game:
             facts = []
-        reply = self.ask(cleaned, facts, job)
+        found = None
+        online = self.live is not None and self.live.enabled
+        # A name the facts have never seen, in a question about the game, is
+        # likely a Brainrot newer than them, and facts matched on the riddle's
+        # other words ("rarity") are about something else.
+        unknown = []
+        if online and not needs.live and (game or GAME_HINT.search(cleaned)):
+            unknown = self.facts.unknown(needs.words)
+        # Look up riddles about now, and game riddles the fact sheet can't answer.
+        if online and (needs.live or unknown or (game and not facts and needs.words)):
+            found = self.live.gather(cleaned, needs, now, lambda: job is not None and job != self.job, self.on_lookup)
+            if found is None:
+                return None
+        evidence = found.items if found else []
+        # What the facts say about "the latest update" was true when they were
+        # written, and facts that never heard of a name aren't about it.
+        if evidence and (unknown or (needs.live and not needs.words)):
+            facts = []
+        date_line = today.describe(now, "season" in cleaned.lower()) if needs.date or needs.live else ""
+        live = live_section(found, needs, now, strict=needs.live)
+        reply = self.ask(cleaned, facts, job, date_line, live)
         # Facts can also put it off a riddle it could answer alone.
-        if facts and reply is not None and not parse_answer(reply, riddle):
+        if facts and not evidence and reply is not None and not parse_answer(reply, riddle, now.day):
             facts = []
-            reply = self.ask(cleaned, facts, job)
+            reply = self.ask(cleaned, facts, job, date_line)
         if reply is None:
             return None
-        return Solved(riddle, parse_answer(reply, riddle), reply, facts, not facts, time.perf_counter() - start)
+        basis = "live" if evidence else "facts" if facts else "clock" if needs.date and not needs.live else "memory"
+        flag = ""
+        if needs.live and not evidence:
+            flag = ("couldn't look it up" if found and found.failed else "nothing current found" if found
+                    else "needs current info")
+        elif unknown and not evidence:
+            flag = "name not in the facts"     # whatever facts it had were about something else
+        elif basis == "memory":
+            flag = "no fact matched"
+        return Solved(riddle, parse_answer(reply, riddle, now.day), reply, facts, bool(flag),
+                      time.perf_counter() - start, evidence, flag, basis)
 
-    def ask(self, riddle, facts, job=None):
+    def ask(self, riddle, facts, job=None, date_line="", live=""):
         """One request to the model. Returns its reply, or None if job goes stale.
 
         The reply is streamed because that's what makes cancelling work: on
@@ -778,7 +896,8 @@ class Solver:
         the server generating.
         """
         body = json.dumps({
-            "messages": self.messages(riddle, facts), "temperature": 0, "max_tokens": MAX_ANSWER_TOKENS,
+            "messages": self.messages(riddle, facts, date_line, live), "temperature": 0,
+            "max_tokens": MAX_ANSWER_TOKENS,
             "stop": ["\n"], "stream": True, "cache_prompt": True,
             "chat_template_kwargs": {"enable_thinking": False},
         })

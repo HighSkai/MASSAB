@@ -1178,6 +1178,7 @@ Tralalero Tralala is a shark. [source: answer to Sammy's riddle "what animal is 
 Sammy's favorite color is blue and his name is Sammy. [source: accepted answer bluesammy67, recording 2026-11-05 21-06-18]
 Sammy's favorite Travis Scott album is Astroworld. [source: answer ASTROWORLD777 typed in recording 2026-11-05 21-07-03]
 The most op minifigure toy in the new Series 2 minifigures is the Griffin. [source: Sammy's answer GRIFFIN10, recording 2026-11-05 21-05-26]
+Sammy's favorite mutation in Steal a Brainrot is Yin Yang. [source: reported by the MASSAB user on 2026-11-11, for Sammy's riddle "what is my favorite mutation? and what day is it today?" in recording 2026-11-11 12-48-45]
 
 ## Riddles and Admin Abuse history
 
@@ -2224,7 +2225,7 @@ Sammy's riddle codes in Steal a Brainrot have asked for a single answer typed as
 Sammy's Strawberry Elephant riddle in Steal a Brainrot asked for three personal facts at once: the height of the tree in his backyard, the wattage of his microwave, and the name of his 4th grade math teacher. [source: https://stealabrainrot.fandom.com/wiki/Strawberry_Elephant | id=C07-0018 | type=community | status=unverified | confidence=medium | event=2026-10-17 | checked=2026-11-07 | note=Fandom wiki page only. The wiki says the riddle was made on 17/10/26 after someone said his riddles were too easy, and it was unsolved on the page.]
 The Steal a Brainrot wiki calls Sammy (SpyderSammy) Samuel Jr on its Taco Tuesday page, where it records that the Taco Tuesday that was his birthday ran the 26 event. [source: https://stealabrainrot.fandom.com/wiki/Taco_Tuesday | id=C07-0019 | type=community | status=unverified | confidence=medium | checked=2026-11-07 | note=Fandom wiki Taco Tuesday page only. The wiki gives Sammy's birthday as February 25 on the SpyderSammy page and as February 24 on the Taco Tuesday and New Year's Machine pages. See open notes.]
 ### Sammy and host favorites (riddle answers)
-Sammy's favorite mutation in Steal a Brainrot is Galaxy, as he said on a past Taco Tuesday. [source: https://stealabrainrot.fandom.com/wiki/Galaxy_Event | id=C07-0020 | type=community | status=unverified | confidence=medium | checked=2026-11-07 | note=Fandom wiki Galaxy Event page only. No date given. The mutation name is taken from the page title, since the line does not repeat it.]
+# Sammy's favorite mutation was listed here as Galaxy (unverified wiki line); the MASSAB user says it's Yin Yang. See "Answers Sammy confirmed".
 Steak's favorite color in Steal a Brainrot is black, according to the Steak wiki page. [source: https://stealabrainrot.fandom.com/wiki/Steak | id=C07-0021 | type=community | status=unverified | confidence=medium | checked=2026-11-07 | note=Fandom wiki Steak page only. No date given.]
 Steak's birthday in Steal a Brainrot is July 31, according to the Steak wiki page. [source: https://stealabrainrot.fandom.com/wiki/Steak | id=C07-0022 | type=community | status=unverified | confidence=medium | checked=2026-11-07 | note=Fandom wiki Steak page only.]
 
@@ -9184,6 +9185,7 @@ Zombie Tralala is in the Aquatic Index in Steal a Brainrot and can be obtained b
 
 # Every line in this section starts with # so the matcher skips it and the model never sees unresolved claims.
 # To settle a conflict, write the agreed value as a normal fact line in the section above and delete the line here.
+# Sammy's favorite mutation: the Fandom wiki's Galaxy Event page (https://stealabrainrot.fandom.com/wiki/Galaxy_Event, checked 2026-11-07) suggested Galaxy; the MASSAB user says Yin Yang (2026-11-11), which is now the fact line.
 
 # Conflict - first Fuse Machine release day: Sportskeeda says August 1, 2025 [source: https://www.sportskeeda.com/roblox-news/steal-brainrot-fuse-machine-update-patch-notes]; the Fandom wiki says Friday, August 1, 2025 [source: https://stealabrainrot.fandom.com/wiki/Fuse_Machine]; The Game of Nerds says August 8, 2025 [source: https://thegameofnerds.com/2025/09/25/steal-a-brainrot-craft-machine-guide-recipes-how-to-use]
 # Conflict - Santa's Fuse release day (3 PM EST on December 6 is already December 7 in India, so this may be a time zone gap): the Fandom update log says December 6, 2025 [source: https://stealabrainrot.fandom.com/wiki/Update_Log/Update_28]; u7buy says December 6, 2025 [source: https://www.u7buy.com/blog/steal-a-brainrot-update-log/]; Sportskeeda says December 7, 2025 [source: https://www.sportskeeda.com/roblox-news/steal-brainrot-santa-s-fuse-machine-guide]

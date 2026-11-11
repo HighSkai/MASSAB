@@ -25,9 +25,13 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboB
                                QSizePolicy, QSlider, QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
 
 import chat
+import keystore
+import lookup
 import setup_ai
+import today
 from codereader import frames_from_screen
 from engine import CODE_FPS, RIDDLE_FPS, Engine, Options
+from lookup import WEB_SEARCHES
 from overlay import (PASSIVE_FLAGS, AreaOverlay, AreaPicker, AreaPreview, capture_area, keep_out_of_capture,
                      monitor_rects, screen_for)
 from riddle import FACTS_PATH, gpu_memory
@@ -57,9 +61,14 @@ DEFAULTS = {
     "overlay_color": "#3cc8ff", "overlay_width": 2, "overlay_opacity": 90,
     "chat_facts": True, "motion": "on",
     "sound": False, "on_top": False, "auto_start": False,
+    # Off until you turn it on: MASSAB is local unless you say otherwise.
+    "online": False, "web_search": "off", "lookup_wait": lookup.WAIT,
 }
 CHOICES = {"model": tuple(MODELS), "overlay": tuple(OVERLAY_WHEN), "hud_corner": HUD_CORNERS,
-           "hud_size": tuple(HUD_SIZES), "motion": tuple(MOTION_MODES)}
+           "hud_size": tuple(HUD_SIZES), "motion": tuple(MOTION_MODES), "web_search": tuple(WEB_SEARCHES)}
+ONLINE_TIP = ("For riddles about now, like what released today or the latest update. Only the riddle's words are "
+              "sent, to the game's Roblox page and its wiki (and your web search, if you pick one). Nothing from "
+              "your screen leaves this PC.")
 COLOR = re.compile(r"#[0-9a-fA-F]{6}")
 PAGES = ("Home", "Chat", "Overlay", "Settings")
 SUGGESTIONS = ("What rarities are there?", "When did Steal a Brainrot come out?", "How do I protect my base?")
@@ -268,7 +277,8 @@ class Panel(QMainWindow):
         # as it's tuned for.
         return Options(words=s["words"], end_gap=s["end_gap"], no_paste=not s["paste"],
                        paste_window=s["paste_window"], key_delay=s["key_delay_ms"] / 1000, model=s["model"],
-                       code_step=round(RIDDLE_FPS / CODE_FPS), show_reads=self.wants_reads())
+                       code_step=round(RIDDLE_FPS / CODE_FPS), show_reads=self.wants_reads(),
+                       online=s["online"], web_search=s["web_search"], lookup_wait=s["lookup_wait"])
 
     def wants_reads(self):
         return self.settings["overlay"] != "never" and self.settings["overlay_reads"]
@@ -489,11 +499,15 @@ class Panel(QMainWindow):
         self.paste_label.hide()
         self.guess_label = label("", "warning", upper=True)
         self.guess_label.hide()
+        # Answered from something looked up online; hover for what and where.
+        self.live_label = label("Live", "chip", upper=True)
+        self.live_label.hide()
         self.total_label = label("", "total")
         self.total_label.setToolTip("From the text appearing to the paste finishing")
         meta.addWidget(self.kind_label, 0, Qt.AlignmentFlag.AlignBottom)
         meta.addWidget(self.paste_label, 0, Qt.AlignmentFlag.AlignBottom)
         meta.addWidget(self.guess_label, 0, Qt.AlignmentFlag.AlignBottom)
+        meta.addWidget(self.live_label, 0, Qt.AlignmentFlag.AlignBottom)
         meta.addStretch()
         meta.addWidget(self.total_label, 0, Qt.AlignmentFlag.AlignBottom)
         self.meta_row.hide()
@@ -728,6 +742,7 @@ class Panel(QMainWindow):
                           self.setting_row("Fact sheet", facts, "Changes apply the next time the AI loads",
                                            tip="Where riddle and chat answers come from")])
         box.addWidget(card)
+        box.addWidget(self.build_live_card())
 
         card, c = self.card("Window")
         self.motion_edit = self.bind("motion", self.segmented(MOTION_MODES.items()))
@@ -741,6 +756,79 @@ class Panel(QMainWindow):
         box.addWidget(card)
         box.addStretch()
         return page
+
+    def build_live_card(self):
+        card, c = self.card("Live info")
+        self.online_edit = self.bind("online", Toggle())
+        self.web_edit = self.bind("web_search", self.segmented(WEB_SEARCHES.items()))
+        self.key_edit = QLineEdit(echoMode=QLineEdit.EchoMode.Password)
+        self.key_edit.setFixedWidth(FIELD_WIDTH + 40)
+        self.key_edit.editingFinished.connect(self.save_key)
+        self.forget_button = QPushButton("Forget", objectName="small")
+        self.forget_button.setToolTip("Remove the saved key from Windows Credential Manager")
+        self.forget_button.clicked.connect(self.forget_key)
+        key_box = QWidget()
+        row = QHBoxLayout(key_box)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        row.addWidget(self.key_edit)
+        row.addWidget(self.forget_button)
+        self.wait_edit = self.bind("lookup_wait", QDoubleSpinBox(minimum=0.5, maximum=10, singleStep=0.5, suffix=" s",
+                                                                 decimals=1))
+        self.wait_edit.setFixedWidth(FIELD_WIDTH)
+        self.live_rows = [
+            self.setting_row("Web search", self.web_edit, "Optional. The game's page and wiki need no key.",
+                             tip="Also search the web, with your own API key. Tavily's free plan has 1,000 "
+                                 "searches a month; Brave has its own index."),
+            self.setting_row("API key", key_box, tip="Kept in Windows Credential Manager, never in settings.json. "
+                                                     "TAVILY_API_KEY or BRAVE_API_KEY in the environment wins."),
+            self.setting_row("Wait for answers", self.wait_edit,
+                             tip="How long a riddle waits for lookups before it's answered without them"),
+        ]
+        self.add_rows(c, [self.setting_row("Look things up online", self.online_edit,
+                                           "Only the riddle's words leave this PC", tip=ONLINE_TIP)] + self.live_rows)
+        self.show_live_settings()
+        return card
+
+    def show_live_settings(self):
+        """Grey out what doesn't apply, and say where the key comes from without ever showing it."""
+        online, provider = self.settings["online"], self.settings["web_search"]
+        for row in self.live_rows:
+            row.setEnabled(online)
+        name = WEB_SEARCHES.get(provider, "")
+        searching = online and provider != "off"
+        environment = searching and keystore.from_environment(provider)
+        saved = searching and not environment and bool(keystore.saved(provider))
+        self.live_rows[1].setEnabled(searching and not environment)
+        self.forget_button.setVisible(saved)
+        if provider == "off":
+            text = "Pick a web search first"
+        elif environment:
+            text = f"Using {keystore.ENVIRONMENT[provider]}"
+        elif saved:
+            text = "Key saved"
+        else:
+            text = f"Paste a {name} key"
+        self.key_edit.setPlaceholderText(text)
+
+    def save_key(self):
+        key, provider = self.key_edit.text().strip(), self.settings["web_search"]
+        if not key or provider == "off":
+            return
+        self.key_edit.clear()
+        try:
+            keystore.save(provider, key)
+        except (OSError, ValueError) as e:
+            self.log(f"Couldn't save the {WEB_SEARCHES[provider]} key: {e}")
+        else:
+            self.log(f"Saved the {WEB_SEARCHES[provider]} key in Windows Credential Manager.")
+        self.show_live_settings()
+
+    def forget_key(self):
+        provider = self.settings["web_search"]
+        keystore.forget(provider)
+        self.log(f"Removed the saved {WEB_SEARCHES.get(provider, '')} key.")
+        self.show_live_settings()
 
     # Controls bound to a setting.
 
@@ -805,6 +893,9 @@ class Panel(QMainWindow):
             self.show_ai("off")
         elif key == "region":
             self.check_region()
+        elif key in ("online", "web_search", "lookup_wait"):
+            self.engine.configure_live(**{key: value})
+            self.show_live_settings()
         if key.startswith("hud") or key in ("monitor", "region"):
             self.style_hud()
         if key.startswith("overlay") or key in ("monitor", "region"):
@@ -1132,14 +1223,27 @@ class Panel(QMainWindow):
         self.show_chat_state()
         solver = self.engine.solver
         facts = solver.facts if solver and self.settings["chat_facts"] else None
-        threading.Thread(target=self.chat_worker, args=(self.chat_job, list(self.chat_history), facts, self.chat_cancel),
+        live = self.engine.live if self.settings["online"] else None
+        threading.Thread(target=self.chat_worker,
+                         args=(self.chat_job, list(self.chat_history), facts, self.chat_cancel, live),
                          daemon=True).start()
 
-    def chat_worker(self, job, history, facts, cancel):
-        """Runs on its own thread."""
+    def chat_worker(self, job, history, facts, cancel, live=None):
+        """Runs on its own thread. A question about now is looked up first, if
+        online lookups are on."""
+        question, now = history[-1]["content"], today.local_now()
         try:
-            lines = chat.pick_facts(facts, history[-1]["content"]) if facts else []
-            reply = chat.stream_reply(chat.build_messages(history, lines),
+            lines = chat.pick_facts(facts, question) if facts else []
+            found_text = ""
+            needs = lookup.classify(question)
+            if live is not None and live.enabled and needs.live:
+                self.relay.emit("chat_note", {"job": job, "text": "*Looking up current info...*"})
+                found = live.gather(question, needs, now, cancel.is_set)
+                if found is None:
+                    self.relay.emit("chat_done", {"job": job, "reply": None, "error": None})
+                    return
+                found_text = lookup.live_section(found, needs, now, strict=False)
+            reply = chat.stream_reply(chat.build_messages(history, lines, today.describe(now), found_text),
                                       lambda text: self.relay.emit("chat_text", {"job": job, "text": text}), cancel)
         except chat.ERRORS as e:
             self.relay.emit("chat_done", {"job": job, "reply": None, "error": str(e)})
@@ -1200,9 +1304,13 @@ class Panel(QMainWindow):
         self.log_view.appendHtml(f'<span style="color:{TEXT3}">{time.strftime("%H:%M:%S")}</span>&nbsp;&nbsp;'
                                  f'<span style="white-space:pre-wrap">{html.escape(text)}</span>')
 
-    def show_answer(self, text, kind, detail="", times=None, total=None, guess="", pasted=None):
+    def show_answer(self, text, kind, detail="", times=None, total=None, guess="", pasted=None, sources=()):
         """times is (read, ai, paste) in seconds, for the bar under a riddle's answer.
-        pasted None leaves the paste chip as it was, for an answer that didn't change."""
+        pasted None leaves the paste chip as it was, for an answer that didn't change.
+        sources is the live info the answer came from, listed on the LIVE chip."""
+        self.live_label.setVisible(bool(sources))
+        self.live_label.setToolTip("\n".join(f"{item.source}: {item.title}" + (f"\n    {item.url}" if item.url else "")
+                                             for item in sources))
         self.answer_label.setText(text)
         self.answer_label.setProperty("empty", False)
         self.answer_label.style().polish(self.answer_label)
@@ -1268,8 +1376,13 @@ class Panel(QMainWindow):
             if e["note"]:
                 self.chime()
         elif kind == "no_answer":
-            self.log(f"No answer from the model: {e['solved'].reply!r}")
+            flag = getattr(e["solved"], "flag", "")
+            self.log(f"No answer from the model: {e['solved'].reply!r}" + (f" ({flag})" if flag else ""))
             self.hud.show_result("No answer", "RIDDLE")
+        elif kind == "lookup":
+            self.log(e["note"])
+            if e["state"] == "searching":
+                self.hud.show_result("Looking up", "RIDDLE")
         elif kind == "rows":
             if self.watching:
                 self.overlay.set_reads(e["boxes"])
@@ -1285,6 +1398,9 @@ class Panel(QMainWindow):
             self.show_vram(e["memory"])
         elif kind == "chat_text":
             self.on_chat_text(e)
+        elif kind == "chat_note":
+            if e["job"] == self.chat_job and self.chat_bubble is not None and not self.chat_partial:
+                self.set_bubble_text(self.chat_bubble, e["text"])
         elif kind == "chat_done":
             self.on_chat_done(e)
         elif kind == "error":
@@ -1296,10 +1412,17 @@ class Panel(QMainWindow):
     def on_answer(self, e):
         solved, total, paste = e["solved"], e["total"], e["paste"]
         read = max(0.0, total - solved.seconds - paste)
-        guess = "Guess: no fact matched" if solved.guess else ""
+        flag = getattr(solved, "flag", "") or "no fact matched"
+        sources = getattr(solved, "sources", [])
+        guess = f"Guess: {flag}" if solved.guess else ""
         self.show_answer(solved.answer, "RIDDLE", solved.riddle, (read, solved.seconds, paste), total, guess,
-                         None if e["unchanged"] else was_pasted(e["note"]))
-        self.log(f"Answer: {solved.answer}{e['note']}  [{total:.2f} s]" + ("  (guess)" if solved.guess else ""))
+                         None if e["unchanged"] else was_pasted(e["note"]), sources)
+        clock = getattr(solved, "basis", "") == "clock"
+        how = "  (guess)" if solved.guess else "  (from today's date)" if clock else ""
+        self.log(f"Answer: {solved.answer}{e['note']}  [{total:.2f} s]{how}")
+        if sources:
+            self.log("Used: " + "; ".join(f"{item.source}, {item.title}" + (f" ({item.url})" if item.url else "")
+                                          for item in sources))
         state = "same" if e["unchanged"] else "pasted" if was_pasted(e["note"]) else "copied"
         self.hud.show_result(solved.answer, "RIDDLE", f"{total:.2f} s", state, solved.guess)
 

@@ -12,6 +12,8 @@ happens is reported through one on_event(kind, now=seconds, ...) callback:
                                 the model answered; total is seconds since the
                                 text first appeared on screen, paste included
     no_answer   solved          the model gave nothing usable
+    lookup      state note      a riddle about now is being looked up online: state is
+                                "searching", "found", "cached", "nothing" or "failed"
     ai          state           "loading", "ready" or "off"
     error       message
     frame       reads           every frame's OCR reads (verbose only)
@@ -23,13 +25,16 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 import pyperclip
 
 import codereader
 from codereader import KEY_DELAY, CodeReader, frames_from_screen, frames_from_video, paste_into, read_frame
+from lookup import INTRO_REFRESH, WAIT, WEB_SEARCHES, LiveInfo
 from riddle import FACTS_PATH, Facts, LlamaServer, RiddleTracker, Solver, load_system_prompt, read_rows
 from setup_ai import DEFAULT_MODEL, MODELS, ai_installed
+from today import local_now
 
 # Codes last seconds, so 4 frames a second is plenty. Riddles are on the clock.
 # The code reader is tuned for its rate and drops codes at 12, so with frames
@@ -54,6 +59,22 @@ class Options:
     facts_path: str = FACTS_PATH
     code_step: int = 1          # give the code reader every Nth frame
     show_reads: bool = False    # report where text was read, for drawing it on screen
+    online: bool = False        # look up riddles about now (today's releases, the latest update)
+    web_search: str = "off"     # and also search the web with "tavily" or "brave"
+    lookup_wait: float = WAIT   # seconds a riddle waits for lookups
+    # Replaying a recording: when it was made ("2026-11-10T18:15"), so "today"
+    # in its riddles is that day, not the day it's replayed. "" is the real clock.
+    today: str = ""
+
+
+def replay_clock(when):
+    """A clock that starts at when (ISO, this PC's time zone unless it says
+    otherwise) and runs on from there, or the real one for ""."""
+    if not when:
+        return local_now
+    start, then = time.monotonic(), datetime.fromisoformat(when)
+    then = then.astimezone() if then.tzinfo is None else then
+    return lambda: then + timedelta(seconds=time.monotonic() - start)
 
 
 class Engine:
@@ -65,6 +86,9 @@ class Engine:
         self.ocr = None
         self.server = None
         self.solver = None
+        # One for the engine's whole life, so its cache outlasts reloading the AI.
+        self.live = LiveInfo(options.online, options.web_search, options.lookup_wait)
+        self.intro_seen = None
         self.paste_lock = threading.Lock()
         self.stopping = threading.Event()
         self.reset()
@@ -99,14 +123,28 @@ class Engine:
             self.server = LlamaServer(self.options.model)
             self.server.start()
             self.solver = Solver(self.on_answer, self.on_ai_error, load_system_prompt() if prompt is None else prompt,
-                                 Facts(self.options.facts_path))
+                                 Facts(self.options.facts_path), live=self.live, on_lookup=self.on_lookup,
+                                 clock=replay_clock(self.options.today))
             self.solver.solve(WARM_UP_RIDDLE)
         except (OSError, RuntimeError, ValueError) as e:
             self.stop_ai()
             self.emit("error", message=str(e))
             return False
+        self.live.refresh(local_now())
         self.emit("ai", state="ready")
         return True
+
+    def configure_live(self, online=None, web_search=None, lookup_wait=None):
+        """Change online lookups from the next riddle on; safe from any thread."""
+        for name, value in (("online", online), ("web_search", web_search), ("lookup_wait", lookup_wait)):
+            if value is not None:
+                setattr(self.options, name, value)
+        self.live.configure(online, web_search, lookup_wait)
+        if online and self.solver:
+            self.live.refresh(local_now())
+
+    def on_lookup(self, state, note):
+        self.emit("lookup", state=state, note=note)
 
     def stop_ai(self):
         if not self.solver and not self.server:
@@ -215,6 +253,11 @@ class Engine:
         was_claimed = self.tracker.claimed(self.now)
         self.tracker.feed(self.now, messages, stamp)
         claimed = self.tracker.claimed(self.now)
+        # An intro means a riddle is a few seconds off: get the feeds fresh for it now.
+        if self.tracker.intro_seen != self.intro_seen:
+            self.intro_seen = self.tracker.intro_seen
+            if self.solver and self.live.enabled:
+                self.live.refresh(local_now(), INTRO_REFRESH)
         # Those lines read as a code intro too, and the riddle would become its words.
         if claimed and not was_claimed:
             self.reader = self.new_reader()
@@ -239,17 +282,30 @@ def print_event(kind, now, **e):
         print(f"{stamp} riddle: {e['text']}")
     elif kind == "answer":
         solved = e["solved"]
-        guess = "  [GUESS: no fact matched]" if solved.guess else ""
+        guess = f"  [GUESS: {getattr(solved, 'flag', '') or 'no fact matched'}]" if solved.guess else ""
+        live = sorted({item.source for item in getattr(solved, "sources", ())})
+        live = f"  [live: {', '.join(live)}]" if live else ""
         same = "  (same answer)" if e["unchanged"] else e["note"]
-        print(f"{stamp} ANSWER: {solved.answer}{same}  [{e['total']:.2f}s total, model {solved.seconds:.2f}s]{guess}")
+        print(f"{stamp} ANSWER: {solved.answer}{same}  [{e['total']:.2f}s total, model {solved.seconds:.2f}s]"
+              f"{guess}{live}")
     elif kind == "no_answer":
         print(f"{stamp} no answer from the model: {e['solved'].reply!r}")
+    elif kind == "lookup":
+        print(f"{stamp} lookup: {e['note']}")
     elif kind == "ai":
         print(f"{stamp} AI: {e['state']}")
     elif kind == "error":
         print(f"{stamp} error: {e['message']}")
     elif kind == "frame":
         print(f"  {now:6.1f}s  {e['reads']}")
+
+
+def check_today(text):
+    try:
+        text and datetime.fromisoformat(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError("use a date like 2026-11-10, or 2026-11-10T18:15 with the time") from None
+    return text
 
 
 def main():
@@ -275,6 +331,17 @@ def main():
     ap.add_argument("--key-delay", type=float, default=KEY_DELAY * 1000,
                     help="milliseconds after each key of a paste (default 15)")
     ap.add_argument("--model", choices=MODELS, default=DEFAULT_MODEL, help="which downloaded model riddles use")
+    ap.add_argument("--online", action="store_true",
+                    help="look up riddles about now (today's releases, the latest update) on the game's Roblox "
+                         "page and its wiki. Only the riddle's words are sent")
+    ap.add_argument("--web-search", choices=[name for name in WEB_SEARCHES if name != "off"],
+                    help="with --online, also search the web; the API key comes from TAVILY_API_KEY or "
+                         "BRAVE_API_KEY, or the one saved in the window's Settings")
+    ap.add_argument("--lookup-wait", type=float, default=WAIT,
+                    help=f"seconds a riddle waits for lookups (default {WAIT:g})")
+    ap.add_argument("--today", type=check_today, default="",
+                    help="with --video, the date and time the recording was made (2026-11-10 or "
+                         "2026-11-10T18:15), so riddles about today are answered for that day")
     ap.add_argument("--verbose", action="store_true", help="print every frame's OCR reads")
     args = ap.parse_args()
     # Raw OCR reads can contain characters the Windows console can't print.
@@ -284,7 +351,8 @@ def main():
                       no_copy=args.no_copy, no_paste=args.no_paste, paste_window=args.paste_window,
                       key_delay=args.key_delay / 1000,
                       verbose=args.verbose, model=args.model,
-                      code_step=max(1, round(args.fps / CODE_FPS)))
+                      code_step=max(1, round(args.fps / CODE_FPS)), online=args.online,
+                      web_search=args.web_search or "off", lookup_wait=args.lookup_wait, today=args.today)
     engine = Engine(options, lambda kind, now, **e: print_event(kind, now, words=args.words, **e))
     # Codes don't need the AI, so without it only riddles go unsolved.
     if not ai_installed(args.model):

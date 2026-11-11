@@ -42,11 +42,17 @@ def pick_facts(facts, question):
     return lines if coverage >= FACT_MIN_COVERAGE else []
 
 
-def build_messages(history, facts=()):
+def build_messages(history, facts=(), date_line="", live=""):
+    """date_line is today's date (today.describe), and live is what was looked
+    up online (lookup.live_section). Both take room from the history."""
     system = SYSTEM
+    if date_line:
+        system += f"\n\n{date_line}"
     if facts:
         system += "\n\nFacts about the game that may help:\n" + "\n".join(f"- {fact}" for fact in facts)
-    return [{"role": "system", "content": system}, *trim_history(history)]
+    if live:
+        system += f"\n\n{live}"
+    return [{"role": "system", "content": system}, *trim_history(history, max(800, HISTORY_CHARS - len(live)))]
 
 
 def stream_reply(messages, on_text, cancelled, port=PORT, timeout=60):
